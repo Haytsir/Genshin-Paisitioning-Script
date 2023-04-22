@@ -1,6 +1,7 @@
 import { unsafeWindow } from "$";
 import { GamedotMaps } from ".";
 
+// 기존 함수를 재정의하여 사용합니다.
 export function overrideFuntions(site: GamedotMaps) {
     const Hooked_drawMapsScale = unsafeWindow.drawMapsScale;
     unsafeWindow.drawMapsScale = function(args: any) {

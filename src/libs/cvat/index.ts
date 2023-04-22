@@ -1,13 +1,4 @@
-export interface TrackData {
-    m: number;
-    x: number;
-    y: number;
-    r: number;
-    a: number;
-    err: CvatError;
-}
-
-export interface UpdateData {
+export type UpdateData = {
     targetVersion: string;
     currentVersion: string;
     downloaded: number;
@@ -16,10 +7,21 @@ export interface UpdateData {
     done: boolean;
 }
 
-interface CvatError {
+export type TrackData = {
+    m: number;
+    x: number;
+    y: number;
+    r: number;
+    a: number;
+    err: CvatError;
+}
+
+type CvatError = {
     errorCode?: number;
     errorList?: string[];
 }
+
+
 
 export async function loadCvat(debug=false): Promise<void> {
     const params: string[] = new Array();

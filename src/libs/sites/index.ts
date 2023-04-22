@@ -1,8 +1,10 @@
+import { GM_getValue } from "$";
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
 import { loadCvat } from "../cvat";
 import { WebSocketManager } from "../ws";
+import { Config, ConfigData } from "./config";
 
 export class MapSite {
     static #instance: MapSite;
@@ -10,6 +12,7 @@ export class MapSite {
     public dialog: Dialog;
     public actionMenu: ActionMenu;
     public userMarker: UserMarker;
+    public config!: Config;
     public siteHost: string;
     public isPinned: boolean;
     public currentMap: number;
@@ -32,6 +35,7 @@ export class MapSite {
         this.root.appendChild(this.dialog.dialog);
         this.userMarker = new UserMarker();
         this.ws = WebSocketManager.instance;
+        this.ws.onGetConfig = (e, d) => this.onGetConfig(e, d);
         this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e));
         this.actionMenu.actionPin.addEventListener('click', (e) => this.onClickPinBtn(e));
         this.actionMenu.actionPin.addEventListener('contextmenu', (e) => this.onRightClickPinBtn(e));
@@ -54,9 +58,20 @@ export class MapSite {
         event.stopPropagation();
         // $map.control.debugCapture();
     }
-    setFocusScroll(x: number, y: number) {
-
+    onGetConfig(_event:MessageEvent, config: ConfigData) {
+        this.config = new Config({
+            autoAppUpdate: GM_getValue('autoAppUpdate', true),
+            autoLibUpdate: GM_getValue('autoLibUpdate', true),
+            captureInterval: config.captureInterval,
+            captureDelayOnError: config.captureInterval,
+            useBitBltCaptureMode: config.useBitBltCaptureMode,
+        });
+        this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
+    onConfigChanged(config: ConfigData) {
+        this.ws.sendConfig(config);
+    }
+    setFocusScroll(_x: number, _y: number) {}
     appendUserMarker(parent: Element) {
         parent.appendChild(this.userMarker.userMarker);
     }
@@ -67,7 +82,6 @@ export class MapSite {
             if(this.userMarker.userMarker) {
                 this.userMarker.userMarker.classList.add('gps-pinned')
                 let x, y;
-                let o = this.userMarker.userMarker.style['transform']
                 let t, s, l, c;
                 t = 'translate'
                 s = this.userMarker.userMarker.style["transform"].indexOf(t) + t.length + 1;

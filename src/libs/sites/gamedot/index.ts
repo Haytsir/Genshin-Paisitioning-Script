@@ -2,6 +2,7 @@ import { MapSite } from "..";
 import { unsafeWindow } from "\$";
 import { TrackData, UpdateData } from "../../cvat";
 import { overrideFuntions } from "./overrides";
+import { ConfigData } from "../config";
 
 
 declare global {
@@ -128,19 +129,16 @@ export class GamedotMaps extends MapSite {
             }
         } else {
             const pos = [y, x];
-            let sc = 1;
             switch (this.currentMap) {
                 case 0:
                     pos[0] = (pos[0] + 5890) / 2;
                     pos[1] = (pos[1] - 2285) / 2;
                     break;
                 case 1:
-                    sc = 1.275
                     pos[0] = ((pos[0])*1.275) - 670;
                     pos[1] = ((pos[1])*1.275) - 2247;
                     break;
                 case 2:
-                    sc = 1.275
                     pos[0] = ((pos[0])*1.275) - 225;
                     pos[1] = ((pos[1])*1.275) - 2060;
                     break;
@@ -259,7 +257,7 @@ export class GamedotMaps extends MapSite {
         }
     }
 
-    onLibInit(_event: MessageEvent, _data: UpdateData){
+    onLibInit(_event: MessageEvent, _data: ConfigData){
         document.body.addEventListener("mousemove", (e) => this.mouseMoveEvent(e));
     }
 }

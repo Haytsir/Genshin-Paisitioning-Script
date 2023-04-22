@@ -1,4 +1,5 @@
 import { TrackData, UpdateData } from "../cvat";
+import { ConfigData } from "../sites/config";
 import { delay, fetchWithTimeout, isMobileBrowser } from "../utils";
 
 export class WebSocketManager {
@@ -6,9 +7,10 @@ export class WebSocketManager {
     private socket: WebSocket | null;
     public onSocketConnectPost: (event: Event) => void = () => {};
     public onTrackEvent: (event: MessageEvent, data: TrackData) => void = () => {};
+    public onGetConfig: (event: MessageEvent, data: ConfigData) => void = () => {};
     public onLibUpdateProgress: (event:MessageEvent, data: UpdateData) => void = () => {};
     public onLibUpdateDone: (event:MessageEvent, data: UpdateData) => void = () => {};
-    public onLibInit: (event:MessageEvent, data: UpdateData) => void = () => {};
+    public onLibInit: (event:MessageEvent, data: ConfigData) => void = () => {};
     private constructor() {
         this.socket = null;
     }
@@ -69,9 +71,11 @@ export class WebSocketManager {
         if (msg?.event == 'track') {
             msg.data.err = msg.data.err != '' ? JSON.parse(msg.data.err) : null;
             msg.data = msg.data as TrackData;
-            this.onTrackEvent(event, msg.data as TrackData)
+            this.onTrackEvent(event, msg.data as TrackData);
         }else if (msg?.event == 'update') {
-            this.onUpdateEvent(event, msg.data as UpdateData)
+            this.onUpdateEvent(event, msg.data as UpdateData);
+        } else if (msg?.event == 'config') {
+            this.onConfigEvent(event, msg.data as ConfigData);
         }
     }
     
@@ -88,17 +92,30 @@ export class WebSocketManager {
         // TODO: 소켓 종료 시 site의 모든 과정을 초기화 시키는 코드를 작성해야 함.
         console.debug('============================================')
     }
+
+    private onConfigEvent(event: MessageEvent, data: ConfigData): void {
+        this.onGetConfig(event, data);
+        if(event?.currentTarget instanceof WebSocket){
+            this.onLibInit(event, data);
+            event.currentTarget.send(JSON.stringify({ event: 'init' }));
+        }
+    }
     
     private onUpdateEvent(event: MessageEvent, data: UpdateData): void {
         if(data.done) {
             if(event?.currentTarget instanceof WebSocket){
-                this.onLibInit(event, data);
-                event.currentTarget.send(JSON.stringify({ event: 'init' }));
+                event.currentTarget.send(JSON.stringify({ event: 'getConfig' }));
             }
             
             this.onLibUpdateDone(event, data);
         } else {
             this.onLibUpdateProgress(event, data);
+        }
+    }
+
+    sendConfig(config: ConfigData): void {
+        if(this.socket) {
+            this.socket.send(JSON.stringify({ event: 'updateConfig', data: config }));
         }
     }
 }
