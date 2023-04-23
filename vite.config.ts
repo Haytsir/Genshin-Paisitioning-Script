@@ -18,8 +18,8 @@ export default defineConfig({
         icon: 'https://genshin.gamedot.org/asset/xapp-icon128.png.pagespeed.ic.zyAE0ntk9a.webp',
         namespace: 'genshin-paisitioning/script',
         match: ['https://genshin.gamedot.org/?mid=genshinmaps'],
-        downloadURL: "",
-        updateURL: ""
+        downloadURL: "https://github.com/Haytsir/Genshin-Paisitioning-Script/raw/gh-pages/userscript/genshin-paisitioning-script.user.js",
+        updateURL: "https://github.com/Haytsir/Genshin-Paisitioning-Script/raw/gh-pages/userscript/genshin-paisitioning-script.user.js"
       },
     }),
   ],
