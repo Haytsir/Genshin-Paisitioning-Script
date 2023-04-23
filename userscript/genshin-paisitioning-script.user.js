@@ -7,8 +7,8 @@
 // @description:en  Show realtime in game location in the Teyvat Interactive Map, in browser and mobile phones!Support genshin.gamedot.org.
 // @description:ko  원신 게임닷 지도에서 실제 게임에서의 캐릭터 위치를 실시간으로 보여줍니다, 브라우저와 모바일 동시에 사용 가능!
 // @icon            https://genshin.gamedot.org/asset/xapp-icon128.png.pagespeed.ic.zyAE0ntk9a.webp
-// @downloadURL
-// @updateURL
+// @downloadURL     https://github.com/Haytsir/Genshin-Paisitioning-Script/raw/gh-pages/userscript/genshin-paisitioning-script.user.js
+// @updateURL       https://github.com/Haytsir/Genshin-Paisitioning-Script/raw/gh-pages/userscript/genshin-paisitioning-script.user.js
 // @match           https://genshin.gamedot.org/?mid=genshinmaps
 // @grant           GM_getValue
 // @grant           GM_setValue
