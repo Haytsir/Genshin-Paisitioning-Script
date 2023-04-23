@@ -6,6 +6,7 @@ export type ConfigData = {
     captureInterval: number;
     captureDelayOnError: number;
     useBitBltCaptureMode: boolean;
+    changed?: boolean;
 }
 
 export class Config {

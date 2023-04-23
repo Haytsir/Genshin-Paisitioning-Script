@@ -28,7 +28,6 @@ export class MapSite {
     constructor() {
         this.root = document.createElement('div');
         this.root.id = 'gps-root';
-
         this.siteHost = location.host;
         this.root.classList.add(this.siteHost.replace(/\./g, '-'));
         this.actionMenu = new ActionMenu();
@@ -55,6 +54,7 @@ export class MapSite {
         event.preventDefault();
         event.stopPropagation();
         loadCvat(debug);
+        GM_setValue('debug', debug);
         this.ws.getSocket().then((socket) => {
             if(socket == null) {
                 this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.');

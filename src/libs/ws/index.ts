@@ -1,3 +1,4 @@
+import { GM_getValue } from "$";
 import { TrackData, UpdateData } from "../cvat";
 import { ConfigData } from "../sites/config";
 import { delay, fetchWithTimeout, isMobileBrowser } from "../utils";
@@ -77,11 +78,12 @@ export class WebSocketManager {
     
     private onWsMessage(event: MessageEvent): void {
         const msg = JSON.parse(event.data)
+        if(GM_getValue('debug')) console.debug(msg.data);
         if (msg?.event == 'track') {
             msg.data.err = msg.data.err != '' ? JSON.parse(msg.data.err) : null;
             msg.data = msg.data as TrackData;
             this.onTrackEvent(event, msg.data as TrackData);
-        }else if (msg?.event == 'update') {
+        } else if (msg?.event == 'update') {
             this.onUpdateEvent(event, msg.data as UpdateData);
         } else if (msg?.event == 'config') {
             this.onConfigEvent(event, msg.data as ConfigData);
@@ -104,9 +106,11 @@ export class WebSocketManager {
 
     private onConfigEvent(event: MessageEvent, data: ConfigData): void {
         this.onGetConfig(event, data);
-        if(event?.currentTarget instanceof WebSocket){
-            this.onLibInit(event, data);
-            event.currentTarget.send(JSON.stringify({ event: 'init' }));
+        if(!data.changed) {
+            if(event?.currentTarget instanceof WebSocket){
+                this.onLibInit(event, data);
+                event.currentTarget.send(JSON.stringify({ event: 'init' }));
+            }
         }
     }
     
