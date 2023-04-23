@@ -31,6 +31,8 @@ export class GamedotMaps extends MapSite {
     public mapInfo: Map<number, string>;
     public mcEnsure: number;
     public focusPos: [number, number] = [0, 0];
+    private tmpDragging = -1;
+    private tmpMousePos: [number, number] = [0, 0];
 
     static get instance(): GamedotMaps {
         if(!GamedotMaps.#instance) GamedotMaps.#instance = new GamedotMaps();
@@ -52,10 +54,6 @@ export class GamedotMaps extends MapSite {
             this.appendUserMarker(unsafeWindow.objectLayerPin);
 
         this.mapElement = unsafeWindow.objectViewer;
-
-        if(this.isPinned) {
-            this.userMarker.userMarker.classList.add('cocogoat-pinned')
-        }
         
         this.mapInfo = new Map<number, string>([[0, 'teyvat'], [1, 'enkanomiya'], [2, 'underground-mines']]);
         this.mcEnsure = 0;
@@ -65,6 +63,15 @@ export class GamedotMaps extends MapSite {
         this.ws.onLibUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
         this.ws.onLibUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
         this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
+
+        if(unsafeWindow.objectViewer instanceof HTMLDivElement) {
+            unsafeWindow.objectViewer.addEventListener('mousedown', (e) => this.onMouseTouchDown(e));
+            unsafeWindow.objectViewer.addEventListener('touchstart', (e) => this.onMouseTouchDown(e));
+            unsafeWindow.objectViewer.addEventListener('mouseup', (e) => this.onMouseTouchUp(e));
+            unsafeWindow.objectViewer.addEventListener('touchend', (e) => this.onMouseTouchUp(e));
+            unsafeWindow.objectViewer.addEventListener('mousemove', (e) => this.onMouseTouchMove(e));
+            unsafeWindow.objectViewer.addEventListener('touchmove', (e) => this.onMouseTouchMove(e));
+        }
 
         overrideFuntions(this);
     }
@@ -238,6 +245,34 @@ export class GamedotMaps extends MapSite {
         }
     }
 
+    onMouseTouchDown(e: MouseEvent | TouchEvent) {
+        if (!this.ws.isSocketOpen()) return;
+        this.tmpDragging = Date.now();
+        if(e instanceof MouseEvent)
+            this.tmpMousePos = [e.clientX, e.clientY];
+        else if(e instanceof TouchEvent)
+            this.tmpMousePos = [e.touches[0].clientX, e.touches[0].clientY];
+    }
+
+    onMouseTouchMove(e: MouseEvent | TouchEvent) {
+        if (!this.ws.isSocketOpen()) return;
+
+        if (this.tmpDragging > 0 && Date.now() - this.tmpDragging > 100) {
+            let nowMousePos: [number, number] = [0, 0];
+            if(e instanceof MouseEvent)
+                nowMousePos = [e.clientX, e.clientY]
+            else if(e instanceof TouchEvent)
+                nowMousePos = [e.touches[0].clientX, e.touches[0].clientY];
+            const diff = [Math.abs(nowMousePos[0] - this.tmpMousePos[0]), Math.abs(nowMousePos[1] - this.tmpMousePos[1])];
+            if (diff[0] > 20 || diff[1] > 20) this.setPinned(false);
+        }
+    }
+
+    onMouseTouchUp(_e: MouseEvent | TouchEvent) {
+        if (!this.ws.isSocketOpen()) return;
+            this.tmpDragging = -1;
+    }
+
     onStartLibUpdate(_event: MessageEvent, data: UpdateData) {
         this.dialog.alertDialog('GPS', `라이브러리 ${data.targetVersion} 버전 업데이트 중...`, this.onStartLibUpdate.name, false);
         this.dialog.showProgress();
@@ -259,11 +294,5 @@ export class GamedotMaps extends MapSite {
 
     onLibInit(_event: MessageEvent, _data: ConfigData){
         document.body.addEventListener("mousemove", (e) => this.mouseMoveEvent(e));
-    }
-}
-
-declare global {
-    interface HTMLDivElement {
-        attributeStyleMap: () => {};
     }
 }

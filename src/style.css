@@ -111,6 +111,9 @@
     position: relative;
 }
 
+.gps-action .gps-config.hide {
+    display: none;
+}
 .gps-activated .gps-action .gps-pin {
     display: block;
 }
@@ -119,6 +122,9 @@
     display: none;
 }
 
+.gps-activated .gps-action .gps-config {
+    display: block;
+}
 .gps-activated .gps-action .gps-share {
     display: block;
 }
@@ -158,6 +164,12 @@
     transition: right 0.5s cubic-bezier(.7, 1.35, .65, 1);
 }
 
+.gps-dialog.minimized,
+.gps-dialog.minimized.show {
+    min-width: none;
+    width: 30px;
+    height: 30px;
+}
 .gps-dialog .gps-dialog-header {
     padding: 0px 10px;
     border-bottom: solid 1px #BCBCBC;
@@ -182,23 +194,10 @@
     display: block;
     position: absolute;
     top: 10px;
-    right: 0px;
-    width: 30px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.gps-dialog .gps-dialog-close:after {
-    display: block;
-    text-align: center;
-    font-weight: bold;
-    font-family: "Font Awesome 5 Free";
-    content: "\\f067";
-    font-size: 20px;
-    transform: rotate(45deg);
-    top: 5px;
     right: 10px;
-    line-height: initial;
+    height: 20px;
+    font-size: 26px;
+    cursor: pointer;
 }
 
 .gps-dialog .gps-dialog-progress {
@@ -283,6 +282,9 @@
     height: 100%;
     overflow: auto;
     background-color: rgba(0, 0, 0, 0.4);
+    font-family: nanumgothic;
+        font-size: 1em;
+        font-weight: 600;
 }
 
 .gps-config-modal.show {
@@ -309,11 +311,15 @@
 .gps-config-modal-content-body {
     margin: 25px 0;
     display: grid;
-    grid-template-columns: 35% 65%;
     gap: 10px;
     grid-auto-rows: minmax(2em, auto);
 }
 
+.gps-config-item {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    align-items: center;
+}
 .gps-config-modal-title {
     margin: 0;
 }
@@ -443,6 +449,9 @@ input:checked+.gps-config-slider:before {
     position: relative;
 }
 
+.gps-config-btn {
+    margin: 0 0.25em;
+}
 .gps-config-btn.cancel {
     background-color: #ccc;
     color: black;

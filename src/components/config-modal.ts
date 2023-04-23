@@ -61,12 +61,12 @@ export class ConfigModal {
         /* ==== 닫기 Button 생성 ==== */
         const modalClose = document.createElement('div');
         modalClose.className = 'gps-config-close';
-        modalClose.innerText = '&times;';
+        modalClose.innerHTML = '&times;';
         modalContentHeader.appendChild(modalClose);
 
         /* ========== Body 생성 ========== */
         const modalContentBody = document.createElement('div');
-        modalContentHeader.className = 'gps-config-modal-content-body';
+        modalContentBody.className = 'gps-config-modal-content-body';
         modalContent.appendChild(modalContentBody);
         
         this.configItems.forEach((item: ConfigItem, index: number) => {
@@ -123,7 +123,7 @@ export class ConfigModal {
         /* ========== Footer 생성 ========== */
 
         const modalContentFooter = document.createElement('div');
-        modalContentHeader.className = 'gps-config-modal-content-footer';
+        modalContentFooter.className = 'gps-config-modal-content-footer';
         modalContent.appendChild(modalContentFooter);
         
         /* ==== 저장 Button 생성 ==== */
@@ -155,7 +155,7 @@ export class ConfigModal {
         });
     }
 
-    showModal() {
+    showModal(_e: MouseEvent) {
         this.modal.classList.add('show');
     }
 
@@ -163,45 +163,3 @@ export class ConfigModal {
         this.modal.classList.remove('show');
     }
 }
-
-/*
-<div id="modal" class="gps-config-modal">
-        <div class="gps-config-modal-content">
-            <div class="gps-config-modal-content-header">
-                <h2 class="gps-config-modal-title">설정</h2>
-                <div class="gps-config-close">&times;</div>
-            </div>
-            <div class="gps-config-modal-content-body">
-                <label class="gps-config-label" for="gps-config-auto-update-gps">GPS앱 자동 업데이트</label>
-                <label class="gps-config-value gps-config-switch">
-                    <input type="checkbox" id="gps-config-auto-update-gps">
-                    <span class="gps-config-slider"></span>
-                </label>
-
-                <label class="gps-config-label" for="gps-config-auto-update-lib">cvAutoTrack 라이브러리 자동 업데이트</label>
-                <label class="gps-config-value gps-config-switch">
-                    <input type="checkbox" id="gps-config-auto-update-lib">
-                    <span class="gps-config-slider"></span>
-                </label>
-
-                <label class="gps-config-label" for="gps-config-time-capture-interval">화면 캡처 간격</label>
-                <div>
-                    <input maxlength="5" type="text" id="gps-config-time-capture-interval"
-                        class="gps-config-value gps-config-time-input"></input>
-                    <span class="gps-config-time-input-label ms"></span>
-                </div>
-
-                <label class="gps-config-label" for="gps-config-time-capture-delay-on-error">캡처 실패시 딜레이</label>
-                <div>
-                    <input maxlength="5" type="text" id="gps-config-time-capture-delay-on-error"
-                        class="gps-config-value gps-config-time-input"></input>
-                    <span class="gps-config-time-input-label ms"></span>
-                </div>
-            </div>
-            <div class="gps-config-modal-content-footer">
-                <button class="gps-config-btn save">저장</button>
-                <button class="gps-config-btn cancel">취소</button>
-            </div>
-        </div>
-    </div>
-*/

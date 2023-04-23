@@ -1,4 +1,4 @@
-import { GM_getValue } from "$";
+import { GM_getValue, GM_setValue } from "$";
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
@@ -18,6 +18,8 @@ export class MapSite {
     public currentMap: number;
     public ws: WebSocketManager;
     public mapElement: HTMLDivElement | null = null;
+    private _loadAbortController = new AbortController();
+    private _loadAbortSignal = this._loadAbortController.signal;
 
     static get instance(): MapSite {
         if(!MapSite.#instance) MapSite.#instance = new MapSite();
@@ -36,17 +38,32 @@ export class MapSite {
         this.userMarker = new UserMarker();
         this.ws = WebSocketManager.instance;
         this.ws.onGetConfig = (e, d) => this.onGetConfig(e, d);
-        this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e));
+
+        this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
+        this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
         this.actionMenu.actionPin.addEventListener('click', (e) => this.onClickPinBtn(e));
         this.actionMenu.actionPin.addEventListener('contextmenu', (e) => this.onRightClickPinBtn(e));
         this.isPinned = true;
+        if(this.isPinned) {
+            this.userMarker.userMarker.classList.add('gps-pinned')
+            this.actionMenu.actionPin.classList.add('gps-active');
+        }
         this.currentMap = 0;
     }
-    onClickLoadPluginBtn(event: MouseEvent) {
+    onClickLoadPluginBtn(event: MouseEvent, debug: boolean) {
+        this._loadAbortController.abort();
         event.preventDefault();
         event.stopPropagation();
-        loadCvat(false);
-        this.ws.getSocket();
+        loadCvat(debug);
+        this.ws.getSocket().then((socket) => {
+            if(socket == null) {
+                this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.');
+                this._loadAbortController = new AbortController();
+                this._loadAbortSignal = this._loadAbortController.signal;
+                this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
+                this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
+            }
+        });
     }
     onClickPinBtn(event: MouseEvent) {
         event.preventDefault();
@@ -63,12 +80,16 @@ export class MapSite {
             autoAppUpdate: GM_getValue('autoAppUpdate', true),
             autoLibUpdate: GM_getValue('autoLibUpdate', true),
             captureInterval: config.captureInterval,
-            captureDelayOnError: config.captureInterval,
+            captureDelayOnError: config.captureDelayOnError,
             useBitBltCaptureMode: config.useBitBltCaptureMode,
         });
+        this.actionMenu.actionConfig.classList.remove('hide');
+        this.actionMenu.actionConfig.addEventListener('click', (e) => this.config.modal.showModal(e));
         this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
     onConfigChanged(config: ConfigData) {
+        GM_setValue('autoAppUpdate', config.autoAppUpdate);
+        GM_setValue('autoLibUpdate', config.autoLibUpdate);
         this.ws.sendConfig(config);
     }
     setFocusScroll(_x: number, _y: number) {}

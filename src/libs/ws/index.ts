@@ -18,8 +18,9 @@ export class WebSocketManager {
         if(!WebSocketManager._instance) WebSocketManager._instance = new WebSocketManager();
         return WebSocketManager._instance;
     }
-    public async getSocket(): Promise<WebSocket> {
-        if(!this.socket) {
+    public async getSocket(): Promise<WebSocket | null> {
+        let i = 0;
+        while (i++ < 10 && (!this.socket || (this.socket.readyState !== WebSocket.OPEN && this.socket.readyState !== WebSocket.CONNECTING))) {
             let res: Response;
             try{
                 res = await fetchWithTimeout('http://localhost:32332/register', {
@@ -32,32 +33,40 @@ export class WebSocketManager {
                 });
                 if(res.ok) {
                     const connectionURL = await res.json();
-                    const socket = new WebSocket(connectionURL.url);
+                    this.socket = new WebSocket(connectionURL.url);
     
-                    socket.addEventListener('open', (e) => this.onWsOpen(e));
-                    socket.addEventListener('message', (e) => this.onWsMessage(e));
-                    socket.addEventListener('error', (e) => this.onWsError(e));
-                    socket.addEventListener('close', (e) => this.onWsClose(e));
-    
-                    return socket;
+                    this.socket.addEventListener('open', (e) => this.onWsOpen(e));
+                    this.socket.addEventListener('message', (e) => this.onWsMessage(e));
+                    this.socket.addEventListener('error', (e) => this.onWsError(e));
+                    this.socket.addEventListener('close', (e) => this.onWsClose(e));
+
+                    return this.socket;
                 } else {
                     await delay(3000);
-                    return this.getSocket();
+                    continue;
                 }
             }
             catch(e) {
                 await delay(3000);
-                return this.getSocket();
+                continue;
             }
-        } else {
-            return this.socket;
         }
+        return this.socket;
     }
     public closeSocket(): void {
         if(this.socket) {
             this.socket.close();
             this.socket = null;
         }
+    }
+
+    public isSocketOpen(): boolean {
+        if(this.socket instanceof WebSocket) {
+            if(this.socket.readyState === WebSocket.CONNECTING || this.socket.readyState === WebSocket.OPEN) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private onWsOpen(event: Event): void {
@@ -115,7 +124,7 @@ export class WebSocketManager {
 
     sendConfig(config: ConfigData): void {
         if(this.socket) {
-            this.socket.send(JSON.stringify({ event: 'updateConfig', data: config }));
+            this.socket.send(JSON.stringify({ event: 'setConfig', data: config }));
         }
     }
 }

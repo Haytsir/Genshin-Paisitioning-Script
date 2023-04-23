@@ -1,11 +1,5 @@
 import { generateHashNumber } from "../libs/utils";
 
-interface DialogOpenEvent {
-    title: string;
-    content: string;
-    closable: boolean;
-}
-
 export class Dialog {
     public dialog: HTMLDivElement;
     public dialogTitle: HTMLHeadingElement;
@@ -33,13 +27,14 @@ export class Dialog {
         dialogHeader.append(this.dialogTitle);
 
         this.dialogMinimize = document.createElement('div');
-        this.dialogMinimize.className = 'gps-dialog-close';
+        this.dialogMinimize.className = 'gps-dialog-minimize';
         this.dialogMinimize.addEventListener('click', this.minimizeDialog);
         dialogHeader.append(this.dialogMinimize);
         
         this.dialogClose = document.createElement('div');
         this.dialogClose.className = 'gps-dialog-close';
-        this.dialogClose.addEventListener('click', () => this.closeDialog(null, "", null));
+        this.dialogClose.innerHTML = '&#215;';
+        this.dialogClose.addEventListener('click', (e) => this.closeDialog(e, "", null));
         dialogHeader.append(this.dialogClose);
     
         const dialogContent = document.createElement('div');
@@ -51,7 +46,7 @@ export class Dialog {
         dialogContent.append(this.dialogContentText)
     
         this.dialogContentProgress = document.createElement('div');
-        this.dialogContentProgress.className = 'gps-dialog-content-text';
+        this.dialogContentProgress.className = 'gps-dialog-progress';
         dialogContent.append(this.dialogContentProgress)
     
         this.dialogContentProgressIn = document.createElement('div');
@@ -60,7 +55,6 @@ export class Dialog {
     }
     
     alertDialog(title: string, content: string, callerFunc: string | null = null, closable = false): void {
-        this.dialog.dispatchEvent(new CustomEvent<DialogOpenEvent>("alert",{detail:{title, content, closable}}));
         this.dialogTitle.innerText = title;
         this.dialogContentText.innerText = content;
         this.dialog.classList.add('show');
@@ -74,20 +68,24 @@ export class Dialog {
     }
 
     closeDialog(event: MouseEvent | null, content: string = "", callerFunc: string | null = null): void {
-        generateHashNumber(content).then((hn) => {
-            if(this._contentMessageHashNumber != hn && !(event != null && callerFunc == null))
-                return;
-            if((event != null && callerFunc == null) || this._callerFunction == callerFunc) {
-                this.dialog.dispatchEvent(new CustomEvent<undefined>("close",{detail:undefined}));
-                this.dialogClose.classList.remove('show');
-                this._isShowing = false;
-            }
-        });
+        if(event == null || callerFunc != null) {
+            generateHashNumber(content).then((hn) => {
+                if(this._contentMessageHashNumber != hn)
+                    return;
+                if(this._callerFunction == callerFunc) {
+                    this.dialog.classList.remove('show');
+                    this._isShowing = false;
+                }
+            });
+        } else {
+            this.dialog.classList.remove('show');
+            this._isShowing = false;
+        }
+        
     }
 
     minimizeDialog(_event: MouseEvent | null): void {
-        this.dialog.dispatchEvent(new CustomEvent<undefined>("minimize",{detail:undefined}));
-        this.dialog.classList.remove('show');
+        this.dialog.classList.add('minimized');
         this._isMinimized = true;
     }
 
