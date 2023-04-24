@@ -60,11 +60,7 @@ export class GamedotMaps extends MapSite {
 
         // this.ws.onSocketConnectPost = this.onSocketConnect;
         this.ws.onTrackEvent = (e, d) => this.mapOnPos(e, d);
-        this.ws.onAppUpdateProgress = (e, d) => this.onAppUpdateProgress(e, d);
-        this.ws.onAppUpdateDone = (e, d) => this.onAppUpdateDone(e, d);
-        this.ws.onLibUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
-        this.ws.onLibUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
-        this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
+        
 
         if(unsafeWindow.objectViewer instanceof HTMLDivElement) {
             unsafeWindow.objectViewer.addEventListener('mousedown', (e) => this.onMouseTouchDown(e));
@@ -114,11 +110,11 @@ export class GamedotMaps extends MapSite {
     mapOnPos(_event: MessageEvent, posobj: TrackData) {
         let { m, x, y, r: rot, a: dir, err } = posobj;
         if(err) {
-            this.dialog.alertDialog('GPS', '위치를 얻는 도중 오류가 발생했습니다.', this.mapOnPos.name, 0, true);
+            this.dialog.alertDialog('GPS', '위치를 얻는 도중 오류가 발생했습니다.', 0, true);
             return;
         }
         if(this.dialog.isShowing){
-            this.dialog.closeDialog(null, '위치를 얻는 도중 오류가 발생했습니다.', this.mapOnPos.name);
+            this.dialog.closeDialog(null, '위치를 얻는 도중 오류가 발생했습니다.');
         }
         if(this.currentMap !== m) {
             if(this.mcEnsure < 10) {
@@ -131,7 +127,7 @@ export class GamedotMaps extends MapSite {
                     if(mapName)
                         this.onPlayerMovedMap(mapName);
                 } else {
-                    this.dialog.alertDialog('GPS', '알 수 없는 지도입니다.', this.mapOnPos.name, 0, true);
+                    this.dialog.alertDialog('GPS', '알 수 없는 지도입니다.', 0, true);
                 }
             }
         } else {
@@ -195,10 +191,10 @@ export class GamedotMaps extends MapSite {
             if(unsafeWindow.MAPS_Type !== mapName) {
                 this.userMarker.userMarker.classList.add('hide')
                 this.setPinned(false);
-                this.dialog.alertDialog('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', this.onPlayerMovedMap.name, 0, true);
+                this.dialog.alertDialog('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
             } else {
                 this.userMarker.userMarker.classList.remove('hide')
-                this.dialog.closeDialog(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', this.onPlayerMovedMap.name);
+                this.dialog.closeDialog(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
             }
         }
     }
@@ -208,10 +204,10 @@ export class GamedotMaps extends MapSite {
             if(unsafeWindow.MAPS_Type !== strCode) {
                 this.userMarker.userMarker.classList.add('hide')
                 this.setPinned(false);
-                this.dialog.alertDialog('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', this.onChangeMap.name, 0, true);
+                this.dialog.alertDialog('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
             } else {
                 this.userMarker.userMarker.classList.remove('hide')
-                this.dialog.closeDialog(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', this.onChangeMap.name);
+                this.dialog.closeDialog(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
             }
             if(this.objectTargetFilterBtn instanceof HTMLDivElement)
                 this.objectTargetFilterBtn.classList.remove('current-map')
@@ -271,44 +267,6 @@ export class GamedotMaps extends MapSite {
     onMouseTouchUp(_e: MouseEvent | TouchEvent) {
         if (!this.ws.isSocketOpen()) return;
             this.tmpDragging = -1;
-    }
-
-    onStartAppUpdate(_event: MessageEvent, data: UpdateData) {
-        this.dialog.alertDialog('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, this.onStartAppUpdate.name, 0, false);
-        this.dialog.showProgress();
-    }
-
-    onAppUpdateProgress(event: MessageEvent, data: UpdateData) {
-        if(!this.dialog.isProgressing) {
-            this.onStartAppUpdate(event, data)
-        }
-        this.dialog.changeProgress(data.percent);
-    }
-
-    onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
-        if(this.dialog.isShowing && this.dialog.isProgressing) {
-            this.dialog.closeDialog(null, `GPA ${data.targetVersion} 버전 업데이트 중...`, this.onStartAppUpdate.name);
-            this.dialog.hideProgress();
-        }
-    }
-
-    onStartLibUpdate(_event: MessageEvent, data: UpdateData) {
-        this.dialog.alertDialog('GPS', `라이브러리 ${data.targetVersion} 버전 업데이트 중...`, this.onStartLibUpdate.name, 0, false);
-        this.dialog.showProgress();
-    }
-
-    onLibUpdateProgress(event: MessageEvent, data: UpdateData) {
-        if(!this.dialog.isProgressing) {
-            this.onStartLibUpdate(event, data)
-        }
-        this.dialog.changeProgress(data.percent);
-    }
-
-    onLibUpdateDone(_event: MessageEvent, data: UpdateData) {
-        if(this.dialog.isShowing && this.dialog.isProgressing) {
-            this.dialog.closeDialog(null, `라이브러리 ${data.targetVersion} 버전 업데이트 중...`, this.onStartLibUpdate.name);
-            this.dialog.hideProgress();
-        }
     }
 
     onLibInit(_event: MessageEvent, _data: ConfigData){

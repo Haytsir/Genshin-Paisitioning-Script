@@ -140,7 +140,7 @@ export class WebSocketManager {
         } else {
             if(data.targetType == 'app') {
                 this.onAppUpdateProgress(event, data);
-            } else if(data.targetType == 'lib') {
+            } else if(data.targetType == 'cvat') {
                 this.onLibUpdateProgress(event, data);
             }
         }

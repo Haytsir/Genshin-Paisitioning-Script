@@ -40,8 +40,14 @@ export class MapSite {
         this.root.appendChild(this.dialog.dialog);
         this.userMarker = new UserMarker();
         this.ws = WebSocketManager.instance;
+
         this.ws.onGetConfig = (e, d) => this.onGetConfig(e, d);
+        this.ws.onAppUpdateProgress = (e, d) => this.onAppUpdateProgress(e, d);
         this.ws.onAppUpdateDone = (e, d) => this.onAppUpdateDone(e, d);
+        this.ws.onLibUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
+        this.ws.onLibUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
+        this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
+
         // 다른 데이터를 필요로 하지 않고, 단순히 이벤트를 받기만 하는 경우에는 유연함을 위해 별도로 이벤트 리스너를 등록한다.
         this.ws.addSocketEventListener('close', (e) => this.onSocketClose(e));
         this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
@@ -66,7 +72,7 @@ export class MapSite {
         GM_setValue('debug', debug);
         this.ws.getSocket().then((socket) => {
             if(socket == null) {
-                this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.', this.loadPlugin.name, 10000);
+                this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.', 10000);
                 this.onAppDeactivate();
             }
         });
@@ -81,13 +87,50 @@ export class MapSite {
         event.stopPropagation();
         // $map.control.debugCapture();
     }
+    onStartAppUpdate(_event: MessageEvent, data: UpdateData) {
+        this.dialog.alertDialog('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, 0, false);
+        this.dialog.showProgress();
+    }
+
+    onAppUpdateProgress(event: MessageEvent, data: UpdateData) {
+        if(!this.dialog.isProgressing) {
+            this.onStartAppUpdate(event, data)
+        }
+        this.dialog.changeProgress(data.percent);
+    }
+
     onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
+        if(this.dialog.isShowing && this.dialog.isProgressing) {
+            this.dialog.closeDialog(null, `GPA ${data.targetVersion} 버전 업데이트 중...`);
+            this.dialog.hideProgress();
+        }
         if(data.updated) {
             // 모든 과정을 초기화하고 다시 시작.
-            this.dialog.alertDialog('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.', this.onAppUpdateDone.name);
+            this.dialog.alertDialog('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.');
             this.ws.closeSocket();
             this.onAppDeactivate();
             this.loadPlugin(GM_getValue('debug', false));
+        }
+    }
+
+    onStartLibUpdate(_event: MessageEvent, data: UpdateData) {
+        this.dialog.alertDialog('GPS', `라이브러리 ${data.targetVersion} 버전 업데이트 중...`, 0, false);
+        this.dialog.showProgress();
+    }
+
+    onLibUpdateProgress(event: MessageEvent, data: UpdateData) {
+        console.debug("onLibUpdateProgress")
+        if(!this.dialog.isProgressing) {
+            this.onStartLibUpdate(event, data)
+        }
+        this.dialog.changeProgress(data.percent);
+    }
+
+    onLibUpdateDone(_event: MessageEvent, data: UpdateData) {
+        console.debug("onLibUpdateDone")
+        if(this.dialog.isShowing && this.dialog.isProgressing) {
+            this.dialog.closeDialog(null, `라이브러리 ${data.targetVersion} 버전 업데이트 중...`);
+            this.dialog.hideProgress();
         }
     }
     onSocketClose(_event: Event) {

@@ -11,7 +11,6 @@ export class Dialog {
     private _isShowing: boolean = false;
     private _isMinimized: boolean = false;
     private _isProgressing: boolean = false;
-    private _callerFunction: string | null = null;
     private _contentMessageHashNumber: number = 0;
     
     constructor() {
@@ -54,34 +53,32 @@ export class Dialog {
         this.dialogContentProgress.append(this.dialogContentProgressIn);
     }
     
-    alertDialog(title: string, content: string, callerFunc: string | null = null, timeout: number=0, closable = false): void {
+    alertDialog(title: string, content: string, timeout: number=0, closable = false): void {
         this.dialogTitle.innerText = title;
         this.dialogContentText.innerText = content;
         this.dialog.classList.add('show');
         this.dialogClose.style.display = closable ? 'block' : 'none';
         this._isShowing = true;
-        this._callerFunction = callerFunc;
         generateHashNumber(content).then((hn: number) => {
             this._contentMessageHashNumber = hn;
         });
 
         if(timeout > 0) {
             setTimeout(() => {
-                this.closeDialog(null, content, callerFunc);
+                this.closeDialog(null, content);
             }, timeout);
         }
         
     }
 
-    closeDialog(event: MouseEvent | null, content: string = "", callerFunc: string | null = null): void {
-        if(event == null || callerFunc != null) {
+    closeDialog(event: MouseEvent | null, content: string = ""): void {
+        if(event == null) {
             generateHashNumber(content).then((hn) => {
                 if(this._contentMessageHashNumber != hn)
                     return;
-                if(this._callerFunction == callerFunc) {
-                    this.dialog.classList.remove('show');
-                    this._isShowing = false;
-                }
+                
+                this.dialog.classList.remove('show');
+                this._isShowing = false;
             });
         } else {
             this.dialog.classList.remove('show');
