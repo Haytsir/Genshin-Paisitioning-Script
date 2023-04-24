@@ -60,8 +60,8 @@ export class GamedotMaps extends MapSite {
 
         // this.ws.onSocketConnectPost = this.onSocketConnect;
         this.ws.onTrackEvent = (e, d) => this.mapOnPos(e, d);
-        this.ws.onAppUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
-        this.ws.onAppUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
+        this.ws.onAppUpdateProgress = (e, d) => this.onAppUpdateProgress(e, d);
+        this.ws.onAppUpdateDone = (e, d) => this.onAppUpdateDone(e, d);
         this.ws.onLibUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
         this.ws.onLibUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
         this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
@@ -274,7 +274,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onStartAppUpdate(_event: MessageEvent, data: UpdateData) {
-        this.dialog.alertDialog('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, this.onStartLibUpdate.name, 0, false);
+        this.dialog.alertDialog('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, this.onStartAppUpdate.name, 0, false);
         this.dialog.showProgress();
     }
 
@@ -287,7 +287,7 @@ export class GamedotMaps extends MapSite {
 
     onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
         if(this.dialog.isShowing && this.dialog.isProgressing) {
-            this.dialog.closeDialog(null, `GPA ${data.targetVersion} 버전 업데이트 중...`, this.onStartLibUpdate.name);
+            this.dialog.closeDialog(null, `GPA ${data.targetVersion} 버전 업데이트 중...`, this.onStartAppUpdate.name);
             this.dialog.hideProgress();
         }
     }
