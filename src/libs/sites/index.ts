@@ -109,7 +109,7 @@ export class MapSite {
     }
     onAppActivate(config: ConfigData) {
         this.isActive = true;
-        
+        this.dialog.hideProgress();
         document.body.classList.add('gps-activated');
         this.actionMenu.actionConnect.classList.add('gps-active');
         this.actionMenu.actionConfig.classList.remove('hide');
