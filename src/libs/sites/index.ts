@@ -2,7 +2,7 @@ import { GM_getValue, GM_setValue } from "$";
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
-import { loadCvat } from "../cvat";
+import { UpdateData, loadCvat } from "../cvat";
 import { WebSocketManager } from "../ws";
 import { Config, ConfigData } from "./config";
 
@@ -18,8 +18,13 @@ export class MapSite {
     public currentMap: number;
     public ws: WebSocketManager;
     public mapElement: HTMLDivElement | null = null;
+    private isActive: boolean = false;
+    // Load 버튼을 비활성화 하는 컨트롤러
     private _loadAbortController = new AbortController();
     private _loadAbortSignal = this._loadAbortController.signal;
+    // Load 상태에서 활성화되는 버튼을 비활성화시키는 컨트롤러
+    private _activeAbortController = new AbortController();
+    private _activeAbortSignal = this._activeAbortController.signal;
 
     static get instance(): MapSite {
         if(!MapSite.#instance) MapSite.#instance = new MapSite();
@@ -37,7 +42,9 @@ export class MapSite {
         this.userMarker = new UserMarker();
         this.ws = WebSocketManager.instance;
         this.ws.onGetConfig = (e, d) => this.onGetConfig(e, d);
-
+        this.ws.onAppUpdateDone = (e, d) => this.onAppUpdateDone(e, d);
+        // 다른 데이터를 필요로 하지 않고, 단순히 이벤트를 받기만 하는 경우에는 유연함을 위해 별도로 이벤트 리스너를 등록한다.
+        this.ws.addSocketEventListener('close', (e) => this.onSocketClose(e));
         this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
         this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
         this.actionMenu.actionPin.addEventListener('click', (e) => this.onClickPinBtn(e));
@@ -53,15 +60,15 @@ export class MapSite {
         this._loadAbortController.abort();
         event.preventDefault();
         event.stopPropagation();
+        this.loadPlugin(debug);
+    }
+    loadPlugin(debug: boolean) {
         loadCvat(debug);
         GM_setValue('debug', debug);
         this.ws.getSocket().then((socket) => {
             if(socket == null) {
-                this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.');
-                this._loadAbortController = new AbortController();
-                this._loadAbortSignal = this._loadAbortController.signal;
-                this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
-                this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
+                this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.', this.loadPlugin.name, 10000);
+                this.onAppDeactivate();
             }
         });
     }
@@ -75,6 +82,19 @@ export class MapSite {
         event.stopPropagation();
         // $map.control.debugCapture();
     }
+    onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
+        if(data.updated) {
+            // 모든 과정을 초기화하고 다시 시작.
+            this.dialog.alertDialog('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.', this.onAppUpdateDone.name, 10000);
+            this.ws.closeSocket();
+            this.onAppDeactivate();
+            this.loadPlugin(GM_getValue('debug', false));
+        }
+    }
+    onSocketClose(_event: Event) {
+        this.onAppDeactivate();
+    }
+
     onGetConfig(_event:MessageEvent, config: ConfigData) {
         this.config = new Config({
             autoAppUpdate: GM_getValue('autoAppUpdate', true),
@@ -83,8 +103,36 @@ export class MapSite {
             captureDelayOnError: config.captureDelayOnError,
             useBitBltCaptureMode: config.useBitBltCaptureMode,
         });
+        // Config을 얻었다는 것은 GPA가 연결되었다는 것, 활성화가 된 것으로 표시한다.
+        this.onAppActivate(config)
+        this.config.onConfigChanged = (c) => this.onConfigChanged(c);
+    }
+    onAppActivate(config: ConfigData) {
+        this.isActive = true;
+        
+        document.body.classList.add('gps-activated');
+        this.actionMenu.actionConnect.classList.add('gps-active');
         this.actionMenu.actionConfig.classList.remove('hide');
-        this.actionMenu.actionConfig.addEventListener('click', (e) => this.config.modal.showModal(e));
+
+        this._loadAbortController.abort();
+
+        this._activeAbortController = new AbortController();
+        this._activeAbortSignal = this._activeAbortController.signal;
+        this.actionMenu.actionConfig.addEventListener('click', (e) => this.config.modal.showModal(e), {signal: this._activeAbortSignal});
+
+    }
+    onAppDeactivate() {
+        this.isActive = false;
+
+        this._loadAbortController = new AbortController();
+        this._loadAbortSignal = this._loadAbortController.signal;
+        this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
+        this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
+
+        document.body.classList.remove('gps-activated');
+        this.actionMenu.actionConnect.classList.remove('gps-active');
+        this.actionMenu.actionConfig.classList.remove('hide');
+        this._activeAbortController.abort();
         this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
     onConfigChanged(config: ConfigData) {

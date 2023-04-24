@@ -1,10 +1,12 @@
 export type UpdateData = {
+    targetType: string;
     targetVersion: string;
     currentVersion: string;
     downloaded: number;
     fileSize: number;
     percent: number;
     done: boolean;
+    updated: false;
 }
 
 export type TrackData = {

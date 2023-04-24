@@ -9,9 +9,12 @@ export class WebSocketManager {
     public onSocketConnectPost: (event: Event) => void = () => {};
     public onTrackEvent: (event: MessageEvent, data: TrackData) => void = () => {};
     public onGetConfig: (event: MessageEvent, data: ConfigData) => void = () => {};
+    public onAppUpdateProgress: (event:MessageEvent, data: UpdateData) => void = () => {};
+    public onAppUpdateDone: (event:MessageEvent, data: UpdateData) => void = () => {};
     public onLibUpdateProgress: (event:MessageEvent, data: UpdateData) => void = () => {};
     public onLibUpdateDone: (event:MessageEvent, data: UpdateData) => void = () => {};
     public onLibInit: (event:MessageEvent, data: ConfigData) => void = () => {};
+    public onSocketClose: (event: CloseEvent) => void = () => {};
     private constructor() {
         this.socket = null;
     }
@@ -69,10 +72,16 @@ export class WebSocketManager {
         }
         return false;
     }
+    
+    public addSocketEventListener(event: string, listener: EventListenerOrEventListenerObject): void {
+        if(this.socket instanceof WebSocket) {
+            this.socket.addEventListener(event, listener);
+        }
+    }
 
     private onWsOpen(event: Event): void {
         if(event?.currentTarget instanceof WebSocket)
-            event.currentTarget.send(JSON.stringify({ event: 'checkLibUpdate' }));
+            event.currentTarget.send(JSON.stringify({ event: 'checkAppUpdate' }));
         this.onSocketConnectPost(event);
     }
     
@@ -100,8 +109,8 @@ export class WebSocketManager {
         console.debug('============= WebSocket Closed =============')
         console.debug(`code: ${event.code}`)
         console.debug(`reason: ${event.reason}`)
-        // TODO: 소켓 종료 시 site의 모든 과정을 초기화 시키는 코드를 작성해야 함.
         console.debug('============================================')
+        this.closeSocket();
     }
 
     private onConfigEvent(event: MessageEvent, data: ConfigData): void {
@@ -116,13 +125,24 @@ export class WebSocketManager {
     
     private onUpdateEvent(event: MessageEvent, data: UpdateData): void {
         if(data.done) {
-            if(event?.currentTarget instanceof WebSocket){
-                event.currentTarget.send(JSON.stringify({ event: 'getConfig' }));
+            if(data.targetType == 'app') {
+                if(event?.currentTarget instanceof WebSocket){
+                    event.currentTarget.send(JSON.stringify({ event: 'checkLibUpdate' }));
+                }
+                // 앱이 업데이트 되면 앱 자체가 재실행되므로, 모든 과정을 초기화 시키고 다시 시도해야 함.
+                this.onAppUpdateDone(event, data);
+            } else if(data.targetType == 'cvat') {
+                if(event?.currentTarget instanceof WebSocket){
+                    event.currentTarget.send(JSON.stringify({ event: 'getConfig' }));
+                }
+                this.onLibUpdateDone(event, data);
             }
-            
-            this.onLibUpdateDone(event, data);
         } else {
-            this.onLibUpdateProgress(event, data);
+            if(data.targetType == 'app') {
+                this.onAppUpdateProgress(event, data);
+            } else if(data.targetType == 'lib') {
+                this.onLibUpdateProgress(event, data);
+            }
         }
     }
 

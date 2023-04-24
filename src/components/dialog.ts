@@ -54,7 +54,7 @@ export class Dialog {
         this.dialogContentProgress.append(this.dialogContentProgressIn);
     }
     
-    alertDialog(title: string, content: string, callerFunc: string | null = null, closable = false): void {
+    alertDialog(title: string, content: string, callerFunc: string | null = null, timeout: number=0, closable = false): void {
         this.dialogTitle.innerText = title;
         this.dialogContentText.innerText = content;
         this.dialog.classList.add('show');
@@ -64,6 +64,12 @@ export class Dialog {
         generateHashNumber(content).then((hn: number) => {
             this._contentMessageHashNumber = hn;
         });
+
+        if(timeout > 0) {
+            setTimeout(() => {
+                this.closeDialog(null, content, callerFunc);
+            }, timeout);
+        }
         
     }
 
