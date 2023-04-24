@@ -85,7 +85,7 @@ export class MapSite {
     onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
         if(data.updated) {
             // 모든 과정을 초기화하고 다시 시작.
-            this.dialog.alertDialog('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.', this.onAppUpdateDone.name, 10000);
+            this.dialog.alertDialog('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.', this.onAppUpdateDone.name);
             this.ws.closeSocket();
             this.onAppDeactivate();
             this.loadPlugin(GM_getValue('debug', false));
