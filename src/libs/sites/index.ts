@@ -18,7 +18,6 @@ export class MapSite {
     public currentMap: number;
     public ws: WebSocketManager;
     public mapElement: HTMLDivElement | null = null;
-    private isActive: boolean = false;
     // Load 버튼을 비활성화 하는 컨트롤러
     private _loadAbortController = new AbortController();
     private _loadAbortSignal = this._loadAbortController.signal;
@@ -107,8 +106,7 @@ export class MapSite {
         this.onAppActivate(config)
         this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
-    onAppActivate(config: ConfigData) {
-        this.isActive = true;
+    onAppActivate(_config: ConfigData) {
         this.dialog.hideProgress();
         document.body.classList.add('gps-activated');
         this.actionMenu.actionConnect.classList.add('gps-active');
@@ -122,8 +120,6 @@ export class MapSite {
 
     }
     onAppDeactivate() {
-        this.isActive = false;
-
         this._loadAbortController = new AbortController();
         this._loadAbortSignal = this._loadAbortController.signal;
         this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
