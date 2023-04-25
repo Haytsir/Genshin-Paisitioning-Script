@@ -97,7 +97,7 @@
 
 .gps-action svg {
     width: 80%;
-    fill: #ece5d8;
+    fill: #aaa;
 }
 
 #maps-menu .gps-action svg {
@@ -134,35 +134,35 @@
     }
 }
 
-.gps-action {
-    .gps-share-dot {
-        display: none;
-        position: absolute;
-        background: #ff9605;
-        color: #fff;
-        padding: 1px 4px;
-        font-size: 12px;
-        border-radius: 3px;
-        top: -6px;
-        right: -6px;
-    }
+.gps-action .gps-pin.gps-pinned svg {
+    fill: #ffc107;
+}
 
-    .gps-active {
-        .gps-share-dot {
-            display: block;
-        }
-
-        svg {
-            fill: #ffc107;
-        }
+@media screen and (max-height: 500px) and (min-width: 400px) {
+    .gps-dialog {
+        right: 33vh !important;
+        bottom: 3vh !important;
     }
 }
 
+@media screen and (max-width: 768px) and (orientation: portrait),
+only screen and (max-height: 500px) and (orientation: landscape) {
+    .gps-dialog {
+        right: 1em;
+        bottom: 27vh;
+    }
+}
+
+@media screen and (max-width: 1280px) and (min-width: 768px) and (min-height: 500px) {
+    .gps-dialog {
+        bottom: 22em !important;
+    }
+}
 .gps-dialog {
     position: fixed;
     right: -100%;
     opacity: 0;
-    bottom: 10em;
+    bottom: 18em;
     background: white;
     width: 300px;
     height: 130px;

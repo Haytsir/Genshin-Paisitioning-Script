@@ -56,7 +56,7 @@ export class MapSite {
         this.isPinned = true;
         if(this.isPinned) {
             this.userMarker.userMarker.classList.add('gps-pinned')
-            this.actionMenu.actionPin.classList.add('gps-active');
+            this.actionMenu.actionPin.classList.add('gps-pinned');
         }
         this.currentMap = 0;
     }
@@ -151,8 +151,9 @@ export class MapSite {
     onAppActivate(_config: ConfigData) {
         this.dialog.hideProgress();
         document.body.classList.add('gps-activated');
+        this.actionMenu.actionMenu.classList.add('gps-active');
         this.actionMenu.actionConnect.classList.add('gps-active');
-        this.actionMenu.actionConfig.classList.remove('hide');
+        this.actionMenu.actionConfig.classList.add('gps-active');
 
         this._loadAbortController.abort();
 
@@ -168,8 +169,9 @@ export class MapSite {
         this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
 
         document.body.classList.remove('gps-activated');
+        this.actionMenu.actionMenu.classList.remove('gps-active');
         this.actionMenu.actionConnect.classList.remove('gps-active');
-        this.actionMenu.actionConfig.classList.remove('hide');
+        this.actionMenu.actionConfig.classList.remove('gps-active');
         this._activeAbortController.abort();
         this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
@@ -185,7 +187,7 @@ export class MapSite {
     setPinned(p: boolean) {
         this.isPinned = p;
         if (this.isPinned) {
-            this.actionMenu.actionPin.classList.add('gps-active');
+            this.actionMenu.actionPin.classList.add('gps-pinned');
             if(this.userMarker.userMarker) {
                 this.userMarker.userMarker.classList.add('gps-pinned')
                 let x, y;
@@ -203,7 +205,7 @@ export class MapSite {
                 }
             }
         } else {
-            this.actionMenu.actionPin.classList.remove('gps-active');
+            this.actionMenu.actionPin.classList.remove('gps-pinned');
             if(this.userMarker.userMarker)
                 this.userMarker.userMarker.classList.remove('gps-pinned')
         }

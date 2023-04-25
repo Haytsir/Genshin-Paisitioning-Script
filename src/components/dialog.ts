@@ -71,7 +71,7 @@ export class Dialog {
             this.dialog.classList.add('new');
             setTimeout(() => {
                 this.dialog.classList.remove('new');
-            }, 500);
+            }, 10);
         }
         generateHashNumber(content).then((hn: number) => {
             this._contentMessageHashNumber = hn;
