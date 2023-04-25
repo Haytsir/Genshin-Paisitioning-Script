@@ -33,7 +33,7 @@ export class Dialog {
         this.dialogClose = document.createElement('div');
         this.dialogClose.className = 'gps-dialog-close';
         this.dialogClose.innerHTML = '&#215;';
-        this.dialogClose.addEventListener('click', (e) => this.closeDialog(e, "", null));
+        this.dialogClose.addEventListener('click', (e) => this.closeDialog(e, ""));
         dialogHeader.append(this.dialogClose);
     
         const dialogContent = document.createElement('div');

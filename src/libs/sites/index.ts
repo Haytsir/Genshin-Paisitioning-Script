@@ -46,7 +46,6 @@ export class MapSite {
         this.ws.onAppUpdateDone = (e, d) => this.onAppUpdateDone(e, d);
         this.ws.onLibUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
         this.ws.onLibUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
-        this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
 
         // 다른 데이터를 필요로 하지 않고, 단순히 이벤트를 받기만 하는 경우에는 유연함을 위해 별도로 이벤트 리스너를 등록한다.
         this.ws.addSocketEventListener('close', (e) => this.onSocketClose(e));

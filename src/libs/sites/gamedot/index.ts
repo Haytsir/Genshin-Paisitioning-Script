@@ -1,6 +1,6 @@
 import { MapSite } from "..";
 import { unsafeWindow } from "\$";
-import { TrackData, UpdateData } from "../../cvat";
+import { TrackData } from "../../cvat";
 import { overrideFuntions } from "./overrides";
 import { ConfigData } from "../config";
 
@@ -41,6 +41,9 @@ export class GamedotMaps extends MapSite {
 
     constructor() {
         super();
+
+        this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
+
         const menu = document.getElementById('mapsMenu');
         if(menu instanceof HTMLDivElement)
             this.objectPanelMenu = menu;
