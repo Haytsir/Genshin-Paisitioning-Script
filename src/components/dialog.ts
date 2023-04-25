@@ -4,8 +4,8 @@ export class Dialog {
     public dialog: HTMLDivElement;
     public dialogTitle: HTMLHeadingElement;
     public dialogContentText: HTMLDivElement;
-    public dialogMinimize: HTMLDivElement;
-    public dialogClose: HTMLDivElement;
+    public dialogMinimize: HTMLSpanElement;
+    public dialogClose: HTMLSpanElement;
     public dialogContentProgress: HTMLDivElement;
     public dialogContentProgressIn: HTMLDivElement;
     private _isShowing: boolean = false;
@@ -20,21 +20,26 @@ export class Dialog {
         const dialogHeader = document.createElement('div');
         dialogHeader.className = 'gps-dialog-header';
         this.dialog.appendChild(dialogHeader);
+
+        const dialogBtns = document.createElement('div');
+        dialogBtns.className = 'gps-dialog-buttons';
+        this.dialog.appendChild(dialogBtns);
     
         this.dialogTitle = document.createElement('h3');
         this.dialogTitle.className = 'gps-dialog-title';
         dialogHeader.append(this.dialogTitle);
 
-        this.dialogMinimize = document.createElement('div');
+        this.dialogMinimize = document.createElement('span');
         this.dialogMinimize.className = 'gps-dialog-minimize';
-        this.dialogMinimize.addEventListener('click', this.minimizeDialog);
-        dialogHeader.append(this.dialogMinimize);
+        this.dialogMinimize.innerHTML = '&#8213;';
+        this.dialogMinimize.addEventListener('click', (e) => this.minimizeDialog(e));
+        dialogBtns.append(this.dialogMinimize);
         
-        this.dialogClose = document.createElement('div');
+        this.dialogClose = document.createElement('span');
         this.dialogClose.className = 'gps-dialog-close';
         this.dialogClose.innerHTML = '&#215;';
         this.dialogClose.addEventListener('click', (e) => this.closeDialog(e, ""));
-        dialogHeader.append(this.dialogClose);
+        dialogBtns.append(this.dialogClose);
     
         const dialogContent = document.createElement('div');
         dialogContent.className = 'gps-dialog-content';
@@ -57,8 +62,17 @@ export class Dialog {
         this.dialogTitle.innerText = title;
         this.dialogContentText.innerText = content;
         this.dialog.classList.add('show');
-        this.dialogClose.style.display = closable ? 'block' : 'none';
+        if (closable)
+            this.dialog.classList.add('closable')
+        else
+            this.dialog.classList.remove('closable')
         this._isShowing = true;
+        if(this._isMinimized) {
+            this.dialog.classList.add('new');
+            setTimeout(() => {
+                this.dialog.classList.remove('new');
+            }, 500);
+        }
         generateHashNumber(content).then((hn: number) => {
             this._contentMessageHashNumber = hn;
         });
@@ -88,8 +102,15 @@ export class Dialog {
     }
 
     minimizeDialog(_event: MouseEvent | null): void {
-        this.dialog.classList.add('minimized');
-        this._isMinimized = true;
+        if(this._isMinimized) {
+            this.dialog.classList.remove('minimized');
+            this.dialogMinimize.innerHTML = '&#8213;';
+            this._isMinimized = false;
+        } else {
+            this.dialog.classList.add('minimized');
+            this.dialogMinimize.innerHTML = '&#9635;';
+            this._isMinimized = true;
+        }
     }
 
     showProgress(): void {

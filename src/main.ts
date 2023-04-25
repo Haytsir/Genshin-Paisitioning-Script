@@ -1,4 +1,4 @@
-import './style.css';
+import './style.scss';
 
 import { GamedotMaps } from './libs/sites/gamedot'
 
