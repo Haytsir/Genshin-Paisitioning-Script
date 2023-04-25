@@ -161,17 +161,19 @@
 .gps-dialog {
     position: fixed;
     right: -100%;
+    opacity: 0;
     bottom: 10em;
     background: white;
     width: 300px;
     height: 130px;
     border-radius: 6px;
-    transition-property: right, bottom, width, height, border-radius, background-color;
+    transition-property: opacity, right, bottom, width, height, border-radius, background-color;
     transition-duration: 0.5s;
     transition-timing-function: cubic-bezier(0.7, 1.35, 0.65, 1);
 
     &.show {
         right: 1.5rem;
+        opacity: 1;
     }
 
     &.closable {
@@ -188,7 +190,7 @@
         border-radius: 50%;
 
         &.minimized.new {
-            transition-property: right, bottom, width, height, border-radius;
+            transition-property: opacity, right, bottom, width, height, border-radius;
             background-color: #c4b188;
         }
 
