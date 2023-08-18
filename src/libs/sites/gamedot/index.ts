@@ -190,7 +190,7 @@ export class GamedotMaps extends MapSite {
         if(this.objectTargetFilterBtn instanceof HTMLDivElement)
             this.objectTargetFilterBtn.classList.add('current-map')
 
-        if(this.userMarker.userMarker) {
+        if(this.isActive && this.userMarker.userMarker) {
             if(unsafeWindow.MAPS_Type !== mapName) {
                 this.userMarker.userMarker.classList.add('hide')
                 this.setPinned(false);
@@ -203,7 +203,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onChangeMap(strCode: string, _mapCode = "") {
-        if(this.userMarker.userMarker) {
+        if(this.isActive && this.userMarker.userMarker) {
             if(unsafeWindow.MAPS_Type !== strCode) {
                 this.userMarker.userMarker.classList.add('hide')
                 this.setPinned(false);

@@ -1,4 +1,4 @@
-import { GM_getValue, GM_setValue } from "$";
+import { GM_getValue, GM_setValue, unsafeWindow } from "$";
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
@@ -18,6 +18,7 @@ export class MapSite {
     public currentMap: number;
     public ws: WebSocketManager;
     public mapElement: HTMLDivElement | null = null;
+    public isActive: boolean = false;
     // Load 버튼을 비활성화 하는 컨트롤러
     private _loadAbortController = new AbortController();
     private _loadAbortSignal = this._loadAbortController.signal;
@@ -149,6 +150,7 @@ export class MapSite {
         this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
     onAppActivate(_config: ConfigData) {
+        this.isActive = true;
         this.dialog.hideProgress();
         document.body.classList.add('gps-activated');
         this.actionMenu.actionMenu.classList.add('gps-active');
@@ -163,6 +165,7 @@ export class MapSite {
 
     }
     onAppDeactivate() {
+        this.isActive = false;
         this._loadAbortController = new AbortController();
         this._loadAbortSignal = this._loadAbortController.signal;
         this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
