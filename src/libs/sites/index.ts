@@ -1,4 +1,4 @@
-import { GM_getValue, GM_setValue, unsafeWindow } from "$";
+import { GM_getValue, GM_setValue } from "$";
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
