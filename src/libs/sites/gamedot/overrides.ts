@@ -21,8 +21,13 @@ export function overrideFuntions(site: GamedotMaps) {
 
     const Hooked_changeMapsType = unsafeWindow.changeMapsType;
     unsafeWindow.changeMapsType = function(args) {
-        var ret = Hooked_changeMapsType.apply(this, [args]);
-        site.onChangeMap.apply(site, [args]);
+        let ret;
+        try {
+            ret = Hooked_changeMapsType.apply(this, [args]);
+            site.onChangeMap.apply(site, [args]);
+        } catch (err) {
+            console.error(err);
+        }
 
         return ret;
     };
