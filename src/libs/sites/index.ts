@@ -36,7 +36,7 @@ export class MapSite {
         this.siteHost = location.host;
         this.root.classList.add(this.siteHost.replace(/\./g, '-'));
         this.actionMenu = new ActionMenu();
-        this.root.appendChild(this.actionMenu.actionMenu);
+        this.root.appendChild(this.actionMenu);
         this.dialog = new Dialog();
         this.root.appendChild(this.dialog.dialog);
         this.userMarker = new UserMarker();
@@ -153,7 +153,7 @@ export class MapSite {
         this.isActive = true;
         this.dialog.hideProgress();
         document.body.classList.add('gps-activated');
-        this.actionMenu.actionMenu.classList.add('gps-active');
+        this.actionMenu.classList.add('gps-active');
         this.actionMenu.actionConnect.classList.add('gps-active');
         this.actionMenu.actionConfig.classList.add('gps-active');
 
@@ -172,7 +172,7 @@ export class MapSite {
         this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
 
         document.body.classList.remove('gps-activated');
-        this.actionMenu.actionMenu.classList.remove('gps-active');
+        this.actionMenu.classList.remove('gps-active');
         this.actionMenu.actionConnect.classList.remove('gps-active');
         this.actionMenu.actionConfig.classList.remove('gps-active');
         this._activeAbortController.abort();
