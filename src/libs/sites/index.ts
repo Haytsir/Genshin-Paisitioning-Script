@@ -176,7 +176,6 @@ export class MapSite {
         this.actionMenu.actionConnect.classList.remove('gps-active');
         this.actionMenu.actionConfig.classList.remove('gps-active');
         this._activeAbortController.abort();
-        this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
     onConfigChanged(config: ConfigData) {
         GM_setValue('autoAppUpdate', config.autoAppUpdate);
