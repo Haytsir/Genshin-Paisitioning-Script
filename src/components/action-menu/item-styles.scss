@@ -1,0 +1,49 @@
+action-menu-item {
+    position: relative;
+    width: 100%;
+    height: 38px;
+    text-align: center;
+    padding: 13px 0;
+    color: var(--text);
+    cursor: pointer;
+
+    &:last-child {
+        margin-right: 0;
+    }
+
+    svg,
+    img,
+    .mask-image {
+        position: relative;
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+    }
+
+    &>svg {
+        fill: var(--text);
+    }
+
+    &.active>svg {
+        fill: var(--focus);
+    }
+
+    &.active>.mask-image {
+        background-color: var(--focus);
+    }
+
+    &>.mask-image {
+        background-color: var(--text);
+        mask-repeat: no-repeat;
+        mask-position: center left;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        -webkit-mask-position: center left;
+        -webkit-mask-size: contain;
+    }
+
+    &>p {
+        font-size: 12px;
+        margin: 0;
+    }
+}

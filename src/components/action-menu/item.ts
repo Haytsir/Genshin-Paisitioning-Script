@@ -6,6 +6,24 @@ export class ActionMenuItem extends HTMLElement {
     connectedCallback() {
         this.className = this.getAttribute('class') || '';
         this.title = this.getAttribute('title') || '';
+        if(this.hasAttribute('logo')) {
+            const logo = this.hasAttribute('mask') ? document.createElement('div') : new Image();
+            if (!this.hasAttribute('mask')) {
+                if(logo instanceof Image) {
+                    logo.src = this.getAttribute('logo') || '';
+                    logo.alt = this.getAttribute('title') || '';
+                }
+            } else {
+                if(logo instanceof HTMLDivElement) {
+                    logo.className = 'mask-image';
+                    logo.style.maskImage = `url(${this.getAttribute('logo')})`;
+                }
+            }
+            this.appendChild(logo);
+        }
+        const connectP = document.createElement('p');
+        connectP.textContent = this.getAttribute('text') || '';
+        this.appendChild(connectP);
     }
 
     disconnectedCallback() {

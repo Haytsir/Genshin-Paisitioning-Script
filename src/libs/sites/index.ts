@@ -56,8 +56,8 @@ export class MapSite {
         this.actionMenu.actionPin.addEventListener('contextmenu', (e) => this.onRightClickPinBtn(e));
         this.isPinned = true;
         if(this.isPinned) {
-            this.userMarker.userMarker.classList.add('gps-pinned')
-            this.actionMenu.actionPin.classList.add('gps-pinned');
+            this.userMarker.userMarker.classList.add('active')
+            this.actionMenu.actionPin.classList.add('active');
         }
         this.currentMap = 0;
     }
@@ -189,9 +189,9 @@ export class MapSite {
     setPinned(p: boolean) {
         this.isPinned = p;
         if (this.isPinned) {
-            this.actionMenu.actionPin.classList.add('gps-pinned');
+            this.actionMenu.actionPin.classList.add('active');
             if(this.userMarker.userMarker) {
-                this.userMarker.userMarker.classList.add('gps-pinned')
+                this.userMarker.userMarker.classList.add('active')
                 let x, y;
                 let t, s, l, c;
                 t = 'translate'
@@ -207,9 +207,9 @@ export class MapSite {
                 }
             }
         } else {
-            this.actionMenu.actionPin.classList.remove('gps-pinned');
+            this.actionMenu.actionPin.classList.remove('active');
             if(this.userMarker.userMarker)
-                this.userMarker.userMarker.classList.remove('gps-pinned')
+                this.userMarker.userMarker.classList.remove('active')
         }
     }
     togglePin() {

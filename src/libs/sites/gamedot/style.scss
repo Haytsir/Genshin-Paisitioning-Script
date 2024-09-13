@@ -22,7 +22,7 @@
     --rot: 0deg;
 }
 
-.gps-user-marker.gps-pinned:before {
+.gps-user-marker.active:before {
     clear: both;
     content: "";
     display: block;
@@ -83,58 +83,24 @@
     }
 }
 
-.gps-action {
-    position: absolute;
+action-menu {
+    width: 100%;
     bottom: 20px;
     left: 20px;
     z-index: 99999999;
     margin-bottom: -10px;
 }
 
-#mapsMenu #gps-root .gps-action {
-    position: initial;
-}
-
-.gps-action svg {
+action-menu svg {
     width: 80%;
     fill: #aaa;
 }
 
-#maps-menu .gps-action svg {
+#maps-menu action-menu svg {
     fill: #373a3c;
 }
 
-.gps-action {
-    .gps-pin {
-        display: none;
-    }
-
-    .gps-share {
-        display: none;
-        position: relative;
-    }
-
-    .gps-config.hide {
-        display: none;
-    }
-}
-
-.gps-activated .gps-action {
-    .gps-pin {
-        display: block;
-    }
-
-    .gps-connect {
-        display: none;
-    }
-
-    .gps-config,
-    .gps-share {
-        display: block;
-    }
-}
-
-.gps-action .gps-pin.gps-pinned svg {
+action-menu .gps-pin.active svg {
     fill: #ffc107;
 }
 
@@ -158,6 +124,7 @@ only screen and (max-height: 500px) and (orientation: landscape) {
         bottom: 22em !important;
     }
 }
+
 .gps-dialog {
     position: fixed;
     right: -100%;
@@ -340,11 +307,6 @@ only screen and (max-height: 500px) and (orientation: landscape) {
 
 .maps-menu>svg {
     width: 24px;
-}
-
-.gps-action-icon {
-    width: 24px;
-    height: 24px;
 }
 
 /* 모달 전체 */
