@@ -2,7 +2,7 @@
   "name": "genshin-paisitioning-script",
   "author": "Haytsir",
   "private": true,
-  "version": "1.6.9",
+  "version": "1.6.10",
   "type": "module",
   "scripts": {
     "dev": "vite",

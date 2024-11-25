@@ -139,11 +139,11 @@ export class MapSite {
 
     onGetConfig(_event:MessageEvent, config: ConfigData) {
         this.config = new Config({
-            autoAppUpdate: GM_getValue('autoAppUpdate', true),
-            autoLibUpdate: GM_getValue('autoLibUpdate', true),
-            captureInterval: config.captureInterval,
-            captureDelayOnError: config.captureDelayOnError,
-            useBitBltCaptureMode: config.useBitBltCaptureMode,
+            auto_app_update: GM_getValue('auto_app_update', true),
+            auto_lib_update: GM_getValue('auto_lib_update', true),
+            capture_interval: config.capture_interval,
+            capture_delay_on_error: config.capture_delay_on_error,
+            use_bit_blt_capture_mode: config.use_bit_blt_capture_mode,
         });
         // Config을 얻었다는 것은 GPA가 연결되었다는 것, 활성화가 된 것으로 표시한다.
         this.onAppActivate(config)
@@ -178,8 +178,8 @@ export class MapSite {
         this._activeAbortController.abort();
     }
     onConfigChanged(config: ConfigData) {
-        GM_setValue('autoAppUpdate', config.autoAppUpdate);
-        GM_setValue('autoLibUpdate', config.autoLibUpdate);
+        GM_setValue('auto_app_update', config.auto_app_update);
+        GM_setValue('auto_lib_update', config.auto_lib_update);
         this.ws.sendConfig(config);
     }
     setFocusScroll(_x: number, _y: number) {}

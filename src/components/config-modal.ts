@@ -27,10 +27,10 @@ export class ConfigModal {
         for(const key in config) {
             let label: string = "";
             if(key === 'autoAppUpdate') label = '앱 자동 업데이트';
-            else if(key === 'autoLibUpdate') label = '라이브러리 자동 업데이트';
-            else if(key === 'captureInterval') label = '화면 캡쳐 간격';
-            else if(key === 'captureDelayOnError') label = '캡쳐 에러 시 대기 시간';
-            else if(key === 'useBitBltCaptureMode') label = '비트블럭 캡쳐 모드 사용';
+            else if(key === 'auto_lib_update') label = '라이브러리 자동 업데이트';
+            else if(key === 'capture_interval') label = '화면 캡쳐 간격';
+            else if(key === 'capture_delay_on_error') label = '캡쳐 에러 시 대기 시간';
+            else if(key === 'use_bit_blt_capture_mode') label = '비트블럭 캡쳐 모드 사용';
             this.configItems.push({
                 configKey: key as keyof ConfigData,
                 label: label,
