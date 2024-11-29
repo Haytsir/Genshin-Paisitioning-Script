@@ -23,8 +23,6 @@ type CvatError = {
     errorList?: string[];
 }
 
-
-
 export async function loadCvat(debug=false): Promise<void> {
     const params: string[] = new Array();
     if(debug) params.push('debug');

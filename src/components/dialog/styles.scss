@@ -1,0 +1,175 @@
+:host {
+    --dialog-bg: #ffffff;
+    --dialog-border: rgba(0, 0, 0, 0.1);
+    --dialog-text: #333333;
+    --dialog-shadow: rgba(0, 0, 0, 0.15);
+    --dialog-progress: #4a90e2;
+    --dialog-button-hover: #f5f5f5;
+    --dialog-minimize-color: #c4b188;
+    
+    position: fixed;
+    right: -100%;
+    opacity: 0;
+    bottom: 18em;
+    z-index: 9999;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.show {
+        right: 1.5rem;
+        opacity: 1;
+    }
+}
+
+.gps-dialog {
+    width: 300px;
+
+    .gps-dialog-container {
+        background: var(--dialog-bg);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px var(--dialog-shadow);
+        overflow: hidden;
+    }
+
+    .gps-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--dialog-border);
+
+        .gps-dialog-title-area {
+            flex: 1;
+            
+            .gps-dialog-title {
+                margin: 0;
+                font-size: 16px;
+                font-weight: 600;
+                color: var(--dialog-text);
+            }
+        }
+
+        .gps-dialog-buttons {
+            display: flex;
+            gap: 8px;
+
+            button {
+                background: none;
+                border: none;
+                padding: 6px;
+                cursor: pointer;
+                border-radius: 6px;
+                color: var(--dialog-text);
+                transition: all 0.2s ease;
+                
+                &:hover {
+                    background: var(--dialog-button-hover);
+                }
+
+                span {
+                    display: inline-block;
+                    line-height: 1;
+                }
+            }
+
+            .gps-dialog-minimize span {
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+            .gps-dialog-close span {
+                font-size: 18px;
+            }
+        }
+    }
+
+    .gps-dialog-content {
+        padding: 16px;
+
+        .gps-dialog-content-text {
+            color: var(--dialog-text);
+            line-height: 1.5;
+            font-size: 14px;
+            text-align: center;
+        }
+    }
+
+    .gps-dialog-progress {
+        padding: 0 16px 16px;
+        display: none;
+
+        .gps-dialog-progress-bar {
+            height: 4px;
+            background: var(--dialog-border);
+            border-radius: 2px;
+            overflow: hidden;
+
+            .gps-dialog-progress-in {
+                height: 100%;
+                background: var(--dialog-progress);
+                width: 0;
+                transition: width 0.3s ease;
+                box-shadow: 0 0 8px var(--dialog-progress);
+            }
+        }
+    }
+
+    &.minimized {
+        .gps-dialog-container {
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background: var(--dialog-minimize-color);
+        }
+
+        .gps-dialog-header {
+            padding: 8px;
+            border: none;
+            justify-content: center;
+
+            .gps-dialog-title-area {
+                display: none;
+            }
+
+            .gps-dialog-buttons {
+                .gps-dialog-close {
+                    display: none;
+                }
+
+                .gps-dialog-minimize {
+                    color: white;
+                    
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                    }
+                }
+            }
+        }
+
+        .gps-dialog-content,
+        .gps-dialog-progress {
+            display: none;
+        }
+    }
+}
+
+// 반응형 스타일
+@media screen and (max-width: 768px) {
+    :host {
+        bottom: 5em;
+        
+        &.show {
+            right: 1rem;
+        }
+    }
+
+    .gps-dialog {
+        width: calc(100vw - 2rem);
+        max-width: 300px;
+    }
+}
+
+@media screen and (max-height: 500px) {
+    :host {
+        bottom: 3vh;
+    }
+}

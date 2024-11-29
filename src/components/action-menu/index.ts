@@ -1,96 +1,113 @@
-import logoConnect from '@static/pin-connect.svg';
-import logoSettigns from '@static/config.svg';
-//import logoShare from '../static/pin-share.svg';
+import logoConnect from '@static/pin-connect.svg?url';
+import logoSettings from '@static/config.svg?url';
+import logoPin from '@static/pin-follow.svg?url';
 import { ActionMenuItem } from './item';
-import styles from './item-styles.scss?inline';
+import styles from './styles.scss?inline';
+import { customElement, decodeSvg } from '@src/libs/utils';
+import { sessionStore } from '@src/libs/store';
 
+interface MenuItemConfig {
+    className: string;
+    title: string;
+    logo?: string;
+    text: string;
+    logoType: keyof typeof ActionMenuItem.LOGO_TYPES;
+    svg?: string;
+}
 
+@customElement('gps-action-menu')
 export class ActionMenu extends HTMLElement {
-    
-    public shadowRoot: ShadowRoot | null;
+    public readonly shadowRoot: ShadowRoot;
     public actionPin: ActionMenuItem;
     public actionConnect: ActionMenuItem;
     public actionConfig: ActionMenuItem;
+    private unsubscribe: (() => void) | null = null;
+    private isActive: boolean;
 
-    constructor() {        
+    constructor() {
         super();
-
+        this.isActive = false;
         this.shadowRoot = this.attachShadow({ mode: 'open' });
+        
+        // 메뉴 아이템 설정
+        const menuItems: Record<string, MenuItemConfig> = {
+            pin: {
+                className: 'maps-menu gps-pin',
+                title: '내 위치로 이동',
+                text: '따라가기',
+                logo: decodeSvg(logoPin),
+                logoType: ActionMenuItem.LOGO_TYPES.svg
+            },
+            connect: {
+                className: 'maps-menu gps-connect',
+                title: '플러그인 연결',
+                logo: decodeSvg(logoConnect),
+                text: '실시간 연결',
+                logoType: ActionMenuItem.LOGO_TYPES.svg
+            },
+            config: {
+                className: 'maps-menu gps-config',
+                title: '설정',
+                logo: decodeSvg(logoSettings),
+                text: '설정',
+                logoType: ActionMenuItem.LOGO_TYPES.svg
+            }
+        };
+        // 메뉴 아이템 생성
+        this.actionPin = this.createMenuItem(menuItems.pin);
+        this.actionConnect = this.createMenuItem(menuItems.connect);
+        this.actionConfig = this.createMenuItem(menuItems.config);
 
-        this.actionPin = new ActionMenuItem();
-        this.actionPin.setAttribute('class', 'maps-menu gps-pin');
-        this.actionPin.setAttribute('title', '내 위치로 이동');
-        this.actionPin.innerHTML = `<svg viewBox="0 0 1024 1024"><path d="M176 478.208l275.328 91.733333c1.28 0.426667 2.261333 1.408 2.688 2.688l91.733333 275.328a4.266667 4.266667 0 0 0 7.978667 0.341334l279.381333-651.861334a4.266667 4.266667 0 0 0-5.589333-5.589333L175.658667 470.186667a4.266667 4.266667 0 0 0 0.341333 7.978666z"></path></svg>`;
-        this.actionPin.setAttribute('text', '따라가기');
-        this.shadowRoot.appendChild(this.actionPin);
+        // 스타일 적용
+        const styleSheet = new CSSStyleSheet();
+        styleSheet.replaceSync(styles);
+        this.shadowRoot.adoptedStyleSheets = [styleSheet];
+    }
 
-        this.actionConnect = new ActionMenuItem();
-        this.actionConnect.classList.add('maps-menu', 'gps-connect');
-        this.actionConnect.setAttribute('class', 'maps-menu gps-connect');
-        this.actionConnect.setAttribute('title', '플러그인 연결');
-        this.actionConnect.setAttribute('logo', logoConnect);
-        this.actionConnect.setAttribute('mask', '');
-        this.actionConnect.setAttribute('text', '실시간 연결');
-        //this.actionConnect.innerHTML = `<img src=${logoConnect} alt="Load" class="gps-action-icon" /><p>실시간 연결</p>`;
+    private createMenuItem(config: MenuItemConfig): ActionMenuItem {
+        const menuItem = new ActionMenuItem();
+        menuItem.setAttribute('class', config.className);
+        menuItem.setAttribute('title', config.title);
+        menuItem.setAttribute('text', config.text);
+        
+        if (config.logo) {
+            menuItem.setAttribute('logo', config.logo);
+            menuItem.setAttribute('logoType', config.logoType || ActionMenuItem.LOGO_TYPES.image);
+        }
+        
+        if (config.svg) {
+            menuItem.innerHTML = config.svg;
+        }
 
-        //this.actionConnect.innerHTML = `<object type="image/svg+xml" data=${logoConnect} class="gps-action-icon"></object><p>실시간 연결</p>`;
-        this.shadowRoot.appendChild(this.actionConnect);
-
-        this.actionConfig = new ActionMenuItem();
-        this.actionConfig.setAttribute('class', 'maps-menu gps-connect');
-        this.actionConfig.setAttribute('title', '설정');
-        this.actionConfig.setAttribute('logo', logoSettigns);
-        this.actionConfig.setAttribute('mask', '');
-        this.actionConfig.setAttribute('text', '설정');
-        //this.actionConfig.innerHTML = `<img src=${logoSettigns} alt="Load" class="gps-action-icon" /><p>설정</p>`;
-        this.shadowRoot.appendChild(this.actionConfig);
-
-        // create variable to attach the tailwind stylesheet
-        let style = document.createElement('style');
-        // attach the stylesheet as text
-        style.textContent = styles;
-        // apply the style
-        this.shadowRoot.appendChild(style);
+        this.shadowRoot.appendChild(menuItem);
+        return menuItem;
     }
 
     connectedCallback() {
-        // Add classname to the component's root element
         this.classList.add('gps-action');
-        this.getAttribute('active') === 'true' ? this.onActivated() : this.onDeactivated();
+        this.updateVisibility(this.getAttribute('active') === 'true');
+        // 디버그 모드 변경 감지
+        this.unsubscribe = sessionStore.subscribe(() => {
+            const { isActive } = sessionStore.getState().currentUser;
+            if(isActive !== this.isActive){
+                console.debug(`isActive changed: ${isActive}`);
+                this.updateVisibility(isActive);
+                this.isActive = isActive;
+            }
+        });
     }
 
     disconnectedCallback() {
-        // 웹 컴포넌트가 DOM에서 제거될 때 실행되는 로직을 여기에 작성합니다.
-    }
-
-    static get observedAttributes() {
-        return ['active'];
-    }
-
-    attributeChangedCallback(name: string, oldValue: any, newValue: string) {
-        if (name === 'active') {
-            console.log(`Active attribute changed from ${oldValue} to ${newValue}`);
-
-            if (newValue === 'true') {
-                this.onActivated();
-            } else {
-                this.onDeactivated();
-            }
+        // 컴포넌트가 제거될 때 구독 해제
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
         }
     }
 
-    private onActivated() {
-        this.actionConnect.style.display = 'none';
-        this.actionPin.style.display = 'block';
-        this.actionConfig.style.display = 'block';
-    }
-
-    private onDeactivated() {
-        this.actionConnect.style.display = 'block';
-        this.actionPin.style.display = 'none';
-        this.actionConfig.style.display = 'none';
+    private updateVisibility(isActive: boolean) {
+        this.actionConnect.style.display = isActive ? 'none' : 'block';
+        this.actionPin.style.display = isActive ? 'block' : 'none';
+        this.actionConfig.style.display = isActive ? 'block' : 'none';
     }
 }
-
-customElements.define('action-menu', ActionMenu);
-customElements.define('action-menu-item', ActionMenuItem);

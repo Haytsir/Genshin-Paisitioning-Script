@@ -1,0 +1,234 @@
+:host {
+    --modal-bg: var(--background);
+    --modal-text: var(--text);
+    --modal-border: var(--border);
+    --modal-shadow: rgba(0, 0, 0, 0.2);
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+    --modal-primary: #D3BC8E;
+    --modal-primary-hover: burlywood;
+    --modal-secondary: #ECE5D8;
+    --modal-input-bg: #eee;
+}
+
+@media (prefers-color-scheme: dark){
+	:host {
+        --modal-input-bg: #4A5366;
+    }
+}
+
+.gps-config-modal {
+    visibility: hidden;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    &.show {
+        display: block;
+        visibility: visible;
+        .gps-config-backdrop {
+            opacity: 1;
+            z-index: 999;
+        }
+
+        .gps-config-content {
+            transform: translate(-50%, -50%);
+            opacity: 1;
+            z-index: 9999;
+        }
+    }
+}
+
+.gps-config-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--modal-overlay);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.gps-config-content {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -40%);
+    background: var(--modal-bg);
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    box-shadow: 0 8px 30px var(--modal-shadow);
+    opacity: 0;
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.gps-config-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--modal-border);
+
+    h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--modal-text);
+    }
+
+    .gps-config-close {
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+
+        &:hover {
+            background-color: var(--modal-border);
+        }
+
+        svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--modal-text);
+        }
+    }
+}
+
+.gps-config-body {
+    padding: 24px;
+    overflow-y: auto;
+    max-height: calc(90vh - 140px);
+
+    .config-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .config-label {
+        flex: 1;
+        font-size: 0.95rem;
+        color: var(--modal-text);
+    }
+
+    .number-input {
+        width: 120px;
+        padding: 8px 12px;
+        border: 1px solid var(--modal-border);
+        background: var(--modal-input-bg);
+        color: var(--modal-text);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+
+        &:focus {
+            outline: none;
+            border-color: var(--modal-primary);
+        }
+    }
+
+    .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 24px;
+
+        input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+
+            &:checked + .toggle-slider {
+                background-color: var(--modal-primary);
+
+                &:before {
+                    transform: translateX(20px);
+                }
+            }
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            margin: -2px;
+            background-color: var(--modal-border);
+            border: 2px solid var(--modal-secondary);
+            transition: .3s;
+            border-radius: 24px;
+
+            &:before {
+                position: absolute;
+                content: "";
+                height: 18px;
+                width: 18px;    
+                left: 3px;
+                bottom: 2px;
+                border: 1px solid white;
+                background-color: var(--modal-secondary);
+                transition: .3s;
+                border-radius: 50%;
+            }
+        }
+    }
+}
+
+.gps-config-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--modal-border);
+
+    button {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+
+        &.gps-config-save {
+            background-color: var(--modal-primary);
+            color: white;
+
+            &:hover {
+                background-color: var(--modal-primary-hover);
+            }
+        }
+
+        &.gps-config-cancel {
+            background-color: transparent;
+            border: 1px solid var(--modal-border);
+            color: var(--modal-text);
+
+            &:hover {
+                background-color: var(--modal-border);
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .gps-config-content {
+        width: 95%;
+        margin: 20px;
+    }
+
+    .gps-config-body .config-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .number-input {
+            width: 100%;
+        }
+    }
+}

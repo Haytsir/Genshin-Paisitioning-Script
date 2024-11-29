@@ -27,8 +27,7 @@ export default defineConfig({
         updateURL: `${repository.url}/raw/gh-pages/userscript/${fileName}`
       },
       build: {
-        fileName,
-        minifyCss: true,
+        fileName
       }
     }),
   ],
@@ -50,7 +49,14 @@ export default defineConfig({
     ],
   },
   build: {
+    target: 'esnext',
     minify: 'terser',
     terserOptions: {}
+  },
+  define: {
+    __IPC_ENABLED__: false
+  },
+  esbuild: {
+    target: 'esnext'
   }
 });

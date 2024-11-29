@@ -43,10 +43,30 @@ export function formatSize(size: number): string {
     return (size / 1024 / 1024 / 1024 / 1024).toFixed(2) + 'TB';
 }
 
-export async function generateHashNumber(key: string): Promise<number> {
-    const msgUint8 = new TextEncoder().encode(key);                     
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8); 
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.reduce((a,b) => a+b); 
-    return hashHex;
+export function customElement(name: string) {
+    return (constructor: CustomElementConstructor) => {
+        customElements.define(name, constructor);
+    };
+}
+
+interface ElectronProcess extends NodeJS.Process {
+    type: string;
+}
+
+export function isElectron(strict: boolean = false): boolean {
+    if (typeof window !== 'undefined' && typeof window.process === 'object' && (window.process as ElectronProcess).type === 'renderer') {
+        if(strict) {
+            return /electron/i.test(navigator.userAgent);
+        }
+        return true;
+    }
+    return false;
+}
+
+export function isTauri(): boolean {
+    return (window as { __TAURI__?: unknown })['__TAURI__'] !== undefined;
+}
+
+export function decodeSvg(svg: string): string {
+    return decodeURIComponent(svg.substring(svg.indexOf(',')+1));
 }

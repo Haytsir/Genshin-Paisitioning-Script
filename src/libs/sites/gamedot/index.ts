@@ -43,7 +43,10 @@ export class GamedotMaps extends MapSite {
     constructor() {
         super();
 
-        this.ws.onLibInit = (e, d) => this.onLibInit(e, d);
+        this.communication.setHandlers({
+            onLibInit: (e, d) => this.onLibInit(e, d),
+            onTrackEvent: (e, d) => this.mapOnPos(e, d)
+        });
 
         const menu = document.getElementById('mapsMenu');
         if(menu instanceof HTMLDivElement)
@@ -53,7 +56,7 @@ export class GamedotMaps extends MapSite {
         if(objectTargetFilter instanceof HTMLDivElement)
             this.objectTargetFilterBtn = objectTargetFilter.querySelector("div[data-value='unset']");
 
-        this.userMarker.userMarker.style.transform = `translate(${unsafeWindow.MAPS_RelativeX}px, ${unsafeWindow.MAPS_RelativeY}px) scale(${unsafeWindow.MAPS_PointScale})`;
+        this.userMarker.style.transform = `translate(${unsafeWindow.MAPS_RelativeX}px, ${unsafeWindow.MAPS_RelativeY}px) scale(${unsafeWindow.MAPS_PointScale})`;
         if(unsafeWindow.objectLayerPin instanceof HTMLDivElement)
             this.appendUserMarker(unsafeWindow.objectLayerPin);
 
@@ -61,10 +64,6 @@ export class GamedotMaps extends MapSite {
         
         this.mapInfo = new Map<number, string>([[0, 'teyvat'], [1, 'enkanomiya'], [2, 'underground-mines']]);
         this.mcEnsure = 0;
-
-        // this.ws.onSocketConnectPost = this.onSocketConnect;
-        this.ws.onTrackEvent = (e, d) => this.mapOnPos(e, d);
-        
 
         if(unsafeWindow.objectViewer instanceof HTMLDivElement) {
             unsafeWindow.objectViewer.addEventListener('mousedown', (e) => this.onMouseTouchDown(e));
@@ -114,11 +113,11 @@ export class GamedotMaps extends MapSite {
     mapOnPos(_event: MessageEvent, posobj: TrackData) {
         let { m, x, y, r: rot, a: dir, err } = posobj;
         if(err) {
-            this.dialog.alertDialog('GPS', '위치를 얻는 도중 오류가 발생했습니다.', 0, true);
+            this.dialog.alert('GPS', '위치를 얻는 도중 오류가 발생했습니다.', 0, true);
             return;
         }
-        if(this.dialog.isShowing){
-            this.dialog.closeDialog(null, '위치를 얻는 도중 오류가 발생했습니다.');
+        if(this.dialog.showing){
+            this.dialog.alert('GPS', '위치를 얻는 도중 오류가 발생했습니다.');
         }
         if(this.currentMap !== m) {
             if(this.mcEnsure < 10) {
@@ -131,7 +130,7 @@ export class GamedotMaps extends MapSite {
                     if(mapName)
                         this.onPlayerMovedMap(mapName);
                 } else {
-                    this.dialog.alertDialog('GPS', '알 수 없는 지도입니다.', 0, true);
+                    this.dialog.alert('GPS', '알 수 없는 지도입니다.');
                 }
             }
         } else {
@@ -166,16 +165,16 @@ export class GamedotMaps extends MapSite {
                     this.setFocusPoint(pos[1], pos[0]);
                 }
             }
-            let o = this.userMarker.userMarker.style['transform']
+            let o = this.userMarker.style['transform']
             let t, s, l, c;
             t = 'translate'
-            s = this.userMarker.userMarker.style["transform"].indexOf(t) + t.length + 1
-            l = this.userMarker.userMarker.style["transform"].indexOf(')', s)
-            c = this.userMarker.userMarker.style["transform"].substring(s, l)
+            s = this.userMarker.style["transform"].indexOf(t) + t.length + 1
+            l = this.userMarker.style["transform"].indexOf(')', s)
+            c = this.userMarker.style["transform"].substring(s, l)
 
             let setValues = [Math.round(rpos[1])+'px', Math.round(rpos[0])+'px']
 
-            this.userMarker.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
+            this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
             
             this.userMarker.userMarkerIcon.style.setProperty('--dir', 0 - dir + 'deg');
             this.userMarker.userMarkerIcon.style.setProperty('--rot', 0 - rot + 'deg');
@@ -191,27 +190,27 @@ export class GamedotMaps extends MapSite {
         if(this.objectTargetFilterBtn instanceof HTMLDivElement)
             this.objectTargetFilterBtn.classList.add('current-map')
 
-        if(this.isActive && this.userMarker.userMarker) {
+        if(this.isActive && this.userMarker) {
             if(unsafeWindow.MAPS_Type !== mapName) {
-                this.userMarker.userMarker.classList.add('hide')
+                this.userMarker.classList.add('hide')
                 this.setPinned(false);
-                this.dialog.alertDialog('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
+                this.dialog.alert('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
             } else {
-                this.userMarker.userMarker.classList.remove('hide')
-                this.dialog.closeDialog(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
+                this.userMarker.classList.remove('hide')
+                this.dialog.close(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
             }
         }
     }
 
     onChangeMap(strCode: string, _mapCode = "") {
-        if(this.isActive && this.userMarker.userMarker) {
+        if(this.isActive && this.userMarker) {
             if(unsafeWindow.MAPS_Type !== strCode) {
-                this.userMarker.userMarker.classList.add('hide')
+                this.userMarker.classList.add('hide')
                 this.setPinned(false);
-                this.dialog.alertDialog('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
+                this.dialog.alert('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
             } else {
-                this.userMarker.userMarker.classList.remove('hide')
-                this.dialog.closeDialog(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
+                this.userMarker.classList.remove('hide')
+                this.dialog.close(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
             }
             if(this.objectTargetFilterBtn instanceof HTMLDivElement)
                 this.objectTargetFilterBtn.classList.remove('current-map')
@@ -234,19 +233,19 @@ export class GamedotMaps extends MapSite {
 
     mouseMoveEvent(event: MouseEvent): void {
         if (unsafeWindow.MAPS_ViewMobile == true) return;
-        const rect = this.userMarker.userMarker.getBoundingClientRect();
+        const rect = this.userMarker.getBoundingClientRect();
         let vecX = event.clientX - (rect.left + window.scrollX)
         let vecY = event.clientY - (rect.top + window.scrollY)
         let dist = Math.sqrt( vecX*vecX + vecY*vecY )
         if(dist <= 17.5/unsafeWindow.MAPS_PointScale) {
-            this.userMarker.userMarker.classList.add('hover')
+            this.userMarker.classList.add('hover')
         } else {
-            this.userMarker.userMarker.classList.remove('hover')
+            this.userMarker.classList.remove('hover')
         }
     }
 
     onMouseTouchDown(e: MouseEvent | TouchEvent) {
-        if (!this.ws.isSocketOpen()) return;
+        if (!this.communication.isConnected()) return;
         this.tmpDragging = Date.now();
         if(e instanceof MouseEvent)
             this.tmpMousePos = [e.clientX, e.clientY];
@@ -255,7 +254,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchMove(e: MouseEvent | TouchEvent) {
-        if (!this.ws.isSocketOpen()) return;
+        if (!this.communication.isConnected()) return;
 
         if (this.tmpDragging > 0 && Date.now() - this.tmpDragging > 100) {
             let nowMousePos: [number, number] = [0, 0];
@@ -269,7 +268,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchUp(_e: MouseEvent | TouchEvent) {
-        if (!this.ws.isSocketOpen()) return;
+        if (!this.communication.isConnected()) return;
             this.tmpDragging = -1;
     }
 
