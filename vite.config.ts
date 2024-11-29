@@ -48,6 +48,15 @@ export default defineConfig({
       },
     ],
   },
+  server: {
+    watch: {
+      usePolling: false,
+      interval: 100,
+    },
+    hmr: {
+      overlay: false,
+    }
+  },
   build: {
     target: 'esnext',
     minify: 'terser',

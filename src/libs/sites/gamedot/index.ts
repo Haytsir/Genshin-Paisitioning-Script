@@ -176,8 +176,8 @@ export class GamedotMaps extends MapSite {
 
             this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
             
-            this.userMarker.userMarkerIcon.style.setProperty('--dir', 0 - dir + 'deg');
-            this.userMarker.userMarkerIcon.style.setProperty('--rot', 0 - rot + 'deg');
+            this.userMarker.style.setProperty('--dir', 0 - dir + 'deg');
+            this.userMarker.style.setProperty('--rot', 0 - rot + 'deg');
         }
     }
 
@@ -231,19 +231,6 @@ export class GamedotMaps extends MapSite {
         }
     }
 
-    mouseMoveEvent(event: MouseEvent): void {
-        if (unsafeWindow.MAPS_ViewMobile == true) return;
-        const rect = this.userMarker.getBoundingClientRect();
-        let vecX = event.clientX - (rect.left + window.scrollX)
-        let vecY = event.clientY - (rect.top + window.scrollY)
-        let dist = Math.sqrt( vecX*vecX + vecY*vecY )
-        if(dist <= 17.5/unsafeWindow.MAPS_PointScale) {
-            this.userMarker.classList.add('hover')
-        } else {
-            this.userMarker.classList.remove('hover')
-        }
-    }
-
     onMouseTouchDown(e: MouseEvent | TouchEvent) {
         if (!this.communication.isConnected()) return;
         this.tmpDragging = Date.now();
@@ -273,6 +260,6 @@ export class GamedotMaps extends MapSite {
     }
 
     onLibInit(_event: MessageEvent, _data: ConfigData){
-        document.body.addEventListener("mousemove", (e) => this.mouseMoveEvent(e));
+        
     }
 }
