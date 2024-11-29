@@ -1,17 +1,17 @@
 import { WebSocketManager } from "./ws";
 import { IPCManager, IPCEventMap } from "./ipc";
-import { ConfigData } from "../sites/config";
+import { AppConfigData } from "../sites/config";
 import { TrackData, UpdateData } from "../cvat";
 import { isElectron, isTauri } from "../utils";
 
 
 export interface AppCommunicationHandlers {
-    onGetConfig: (event: MessageEvent, data: ConfigData) => void;
+    onGetConfig: (event: MessageEvent, data: AppConfigData) => void;
     onAppUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
     onAppUpdateDone: (event: MessageEvent, data: UpdateData) => void;
     onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
     onLibUpdateDone: (event: MessageEvent, data: UpdateData) => void;
-    onLibInit: (event: MessageEvent, data: ConfigData) => void;
+    onLibInit: (event: MessageEvent, data: AppConfigData) => void;
     onTrackEvent: (event: MessageEvent, data: TrackData) => void;
 }
 
@@ -21,7 +21,7 @@ export interface CommunicationManager {
     connect(): Promise<boolean>;
     isConnected(): boolean;
     close(): void;
-    sendConfig(config: ConfigData): void;
+    sendConfig(config: AppConfigData): void;
     addEventListener<K extends keyof CommunicationEventMap>(event: K, handler: (event: CommunicationEventMap[K]) => void): void;
     removeEventListener<K extends keyof CommunicationEventMap>(event: K, handler: (event: CommunicationEventMap[K]) => void): void;
     setHandlers(handlers: Partial<AppCommunicationHandlers>): void;
@@ -46,7 +46,7 @@ export class AppCommunication {
         return this.communication.isConnected();
     }
 
-    public sendConfig(config: ConfigData): void {
+    public sendConfig(config: AppConfigData): void {
         this.communication.sendConfig(config);
     }
 

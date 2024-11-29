@@ -2,8 +2,9 @@ import { MapSite } from "..";
 import { unsafeWindow } from "\$";
 import { TrackData } from "../../cvat";
 import { overrideFuntions } from "./overrides";
-import { ConfigData } from "../config";
+import { AppConfigData } from "../config";
 import './style.scss';
+import { sessionStore } from "../../store";
 
 
 declare global {
@@ -232,7 +233,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchDown(e: MouseEvent | TouchEvent) {
-        if (!this.communication.isConnected()) return;
+        if (!sessionStore.getState().currentUser.isActive) return;
         this.tmpDragging = Date.now();
         if(e instanceof MouseEvent)
             this.tmpMousePos = [e.clientX, e.clientY];
@@ -241,7 +242,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchMove(e: MouseEvent | TouchEvent) {
-        if (!this.communication.isConnected()) return;
+        if (!sessionStore.getState().currentUser.isActive) return;
 
         if (this.tmpDragging > 0 && Date.now() - this.tmpDragging > 100) {
             let nowMousePos: [number, number] = [0, 0];
@@ -255,11 +256,11 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchUp(_e: MouseEvent | TouchEvent) {
-        if (!this.communication.isConnected()) return;
-            this.tmpDragging = -1;
+        if (!sessionStore.getState().currentUser.isActive) return;
+            this.tmpDragging = 0;
     }
 
-    onLibInit(_event: MessageEvent, _data: ConfigData){
+    onLibInit(_event: MessageEvent, _data: AppConfigData){
         
     }
 }

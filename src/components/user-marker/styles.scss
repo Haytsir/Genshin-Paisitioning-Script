@@ -62,9 +62,11 @@
         --final-opacity: 0;
         --initial-size: 0;
         --final-size: 1;
+        --animation-duration: 7s;
+        --animation-interval: calc(var(--animation-duration) / 3);
             
         > div {
-            animation: growAndFade 3s infinite ease-out;
+            animation: growAndFade var(--animation-duration) infinite ease-out;
             background-color: var(--color);
             border-radius: 50%;
             height: 100%;
@@ -74,13 +76,13 @@
         }
         
         .circle1 {
-            animation-delay: 1s;    
+            animation-delay: 0s;    
         }
         .circle2 {
-            animation-delay: 2s; 
+            animation-delay: var(--animation-interval); 
         }
         .circle3 {
-            animation-delay: 3s;
+            animation-delay: calc(var(--animation-interval) * 2);
         }
     }
 }

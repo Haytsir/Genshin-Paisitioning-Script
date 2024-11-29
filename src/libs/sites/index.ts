@@ -2,7 +2,7 @@ import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
 import { TrackData, UpdateData, loadCvat } from "../cvat";
-import { ConfigData } from "./config";
+import { AppConfigData } from "./config";
 import { AppCommunication } from "../communication";
 import { PersistentState, persistentStore, sessionStore } from '../store';
 import { ConfigModal } from "@src/components/config-modal";
@@ -13,7 +13,7 @@ export class MapSite {
     public dialog: Dialog;
     public actionMenu: ActionMenu;
     public userMarker: UserMarker;
-    public config!: ConfigData;
+    public config!: AppConfigData;
     public siteHost: string;
     public isPinned: boolean;
     public currentMap: number;
@@ -87,7 +87,7 @@ export class MapSite {
             if(!Object.is(this.config, state.config)) {
                 const {debug} = sessionStore.getState().currentUser;
                 if(debug) {
-                    console.debug('config changed', state.config);
+                    console.debug('설정 변경됨', state.config);
                 }
                 this.config = state.config;
                 this.communication.sendConfig(this.config);
@@ -217,12 +217,12 @@ export class MapSite {
         this.onAppDeactivate();
     }
 
-    onGetConfig(_event:MessageEvent, config: ConfigData) {
+    onGetConfig(_event:MessageEvent, config: AppConfigData) {
         this.config = persistentStore.getState().config;
         // Config을 얻었다는 것은 GPA가 연결되었다는 것, 활성화가 된 것으로 표시한다.
         this.onAppActivate(config)
     }
-    onAppActivate(_config: ConfigData | null = null) {
+    onAppActivate(_config: AppConfigData | null = null) {
         this.isActive = true;
         sessionStore.setState({ 
             currentUser: {
@@ -240,6 +240,7 @@ export class MapSite {
         this._activeAbortController = new AbortController();
         this._activeAbortSignal = this._activeAbortController.signal;
         this.actionMenu.actionConfig.addEventListener('click', (e) => this.configModal.showModal(), {signal: this._activeAbortSignal});
+        this.setPinned(true);
     }
     onAppDeactivate() {
         this.onAppDeactivate();

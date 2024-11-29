@@ -1,5 +1,5 @@
 import { TrackData, UpdateData } from "../../cvat";
-import { ConfigData } from "../../sites/config";
+import { AppConfigData } from "../../sites/config";
 import { CommunicationManager, AppCommunicationHandlers } from "../index";
 import { fetchWithTimeout, isMobileBrowser } from "../../utils";
 import { sessionStore } from "../../store";
@@ -51,12 +51,12 @@ export class WebSocketManager implements CommunicationManager {
     public readonly handlers = {
         onSocketConnectPost: (event: Event) => {},
         onTrackEvent: (event: MessageEvent, data: TrackData) => {},
-        onGetConfig: (event: MessageEvent, data: ConfigData) => {},
+        onGetConfig: (event: MessageEvent, data: AppConfigData) => {},
         onAppUpdateProgress: (event: MessageEvent, data: UpdateData) => {},
         onAppUpdateDone: (event: MessageEvent, data: UpdateData) => {},
         onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => {},
         onLibUpdateDone: (event: MessageEvent, data: UpdateData) => {},
-        onLibInit: (event: MessageEvent, data: ConfigData) => {},
+        onLibInit: (event: MessageEvent, data: AppConfigData) => {},
         onSocketClose: (event: CloseEvent) => {}
     };
 
@@ -242,13 +242,11 @@ export class WebSocketManager implements CommunicationManager {
         this.close();
     }
 
-    private onConfigEvent(event: MessageEvent, data: ConfigData): void {
+    private onConfigEvent(event: MessageEvent, data: AppConfigData): void {
         this.handlers.onGetConfig(event, data);
-        if(!data.changed) {
-            if(event?.currentTarget instanceof WebSocket){
-                this.handlers.onLibInit(event, data);
-                event.currentTarget.send(JSON.stringify({ event: 'init' }));
-            }
+        if(event?.currentTarget instanceof WebSocket){
+            this.handlers.onLibInit(event, data);
+            event.currentTarget.send(JSON.stringify({ event: 'init' }));
         }
     }
     
@@ -275,7 +273,7 @@ export class WebSocketManager implements CommunicationManager {
         }
     }
 
-    sendConfig(config: ConfigData): void {
+    sendConfig(config: AppConfigData): void {
         if(this.socket) {
             this.socket.send(JSON.stringify({ event: 'setConfig', data: config }));
         }

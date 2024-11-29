@@ -1,5 +1,6 @@
 import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
+import { sessionStore } from '@/src/libs/store';
 
 @customElement('gps-user-marker')
 export class UserMarker extends HTMLElement {
@@ -8,6 +9,7 @@ export class UserMarker extends HTMLElement {
     userMarker: any;
     constructor() {
         super();
+        this.style.visibility = 'hidden';
         const shadow = this.attachShadow({ mode: 'open' });
 
         this.userMarkerIcon = document.createElement('div');
@@ -31,5 +33,9 @@ export class UserMarker extends HTMLElement {
         const styleSheet = new CSSStyleSheet();
         styleSheet.replaceSync(styles);
         shadow.adoptedStyleSheets = [styleSheet];
+        
+        sessionStore.subscribe((state) => {
+            this.style.visibility = state.currentUser.isActive ? 'visible' : 'hidden';
+        });
     }
 }

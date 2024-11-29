@@ -1,4 +1,4 @@
-import { ConfigData } from "../../sites/config";
+import { AppConfigData } from "../../sites/config";
 import { UpdateData } from "../../cvat";
 import { AppCommunicationHandlers, CommunicationManager, CommunicationEventMap } from "..";
 
@@ -18,7 +18,7 @@ export interface IPCEventMap {
 }
 
 export interface IPCHandlers {
-    onGetConfig: (event: MessageEvent, data: ConfigData) => void;
+    onGetConfig: (event: MessageEvent, data: AppConfigData) => void;
     onAppUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
     onAppUpdateDone: (event: MessageEvent, data: UpdateData) => void;
     onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
@@ -86,7 +86,7 @@ export class IPCManager implements CommunicationManager {
         Object.assign(this.handlers, handlers);
     }
 
-    public sendConfig(config: ConfigData): void {
+    public sendConfig(config: AppConfigData): void {
         const tauri = (window as TauriWindow).__TAURI__;
         if (tauri?.invoke) {
             tauri.invoke('send_config', { config });
