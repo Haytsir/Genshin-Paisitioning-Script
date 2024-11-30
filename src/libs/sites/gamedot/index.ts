@@ -1,10 +1,11 @@
 import { MapSite } from "..";
+import { AppConfigData } from "@src/libs/sites/config";
+import { sessionStore } from "@src/libs/store";
 import { unsafeWindow } from "\$";
-import { TrackData } from "../../cvat";
+import { TrackData } from "@src/libs/cvat";
 import { overrideFuntions } from "./overrides";
-import { AppConfigData } from "../config";
 import './style.scss';
-import { sessionStore } from "../../store";
+
 
 
 declare global {

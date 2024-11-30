@@ -54,9 +54,7 @@
     }
 
     .gps-user-marker-indicator {
-        position: absolute;
-        height: 45vmin;
-        width: 45vmin;
+        --size: 45;
         --color: #d3bc8e;
         --initial-opacity: .35;
         --final-opacity: 0;
@@ -64,6 +62,9 @@
         --final-size: 1;
         --animation-duration: 7s;
         --animation-interval: calc(var(--animation-duration) / 3);
+        position: absolute;
+        height: calc(var(--size) * 1vmin);
+        width: calc(var(--size) * 1vmin);
             
         > div {
             animation: growAndFade var(--animation-duration) infinite ease-out;

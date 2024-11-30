@@ -1,7 +1,102 @@
 import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
-import { AppConfigData } from "@src/libs/sites/config";
+import { AppConfigData, getDefaultConfig } from "@src/libs/sites/config";
 import { persistentStore } from '@src/libs/store';
+
+// 설정 경로를 위한 타입 정의
+type PathsToStringProps<T> = T extends object
+    ? {
+        [K in keyof T]: T[K] extends object
+            ? `${string & K}.${PathsToStringProps<T[K]>}`
+            : string & K
+    }[keyof T]
+    : never;
+
+type ConfigPath = PathsToStringProps<AppConfigData>;
+
+interface ConfigField {
+    label: string;
+    type: 'checkbox' | 'number' | 'color' | 'range';
+    section: 'app' | 'indicator';
+    path: ConfigPath;  // 전체 경로를 문자열로 저장
+    min?: number;
+    max?: number;
+    step?: number;
+}
+
+const CONFIG_FIELDS: Record<string, ConfigField> = {
+    // App 섹션
+    auto_app_update: {
+        label: '앱 자동 업데이트',
+        type: 'checkbox',
+        section: 'app',
+        path: 'app.auto_app_update'
+    },
+    auto_lib_update: {
+        label: '라이브러리 자동 업데이트',
+        type: 'checkbox',
+        section: 'app',
+        path: 'app.auto_lib_update'
+    },
+    capture_interval: {
+        label: '화면 캡쳐 간격',
+        type: 'number',
+        section: 'app',
+        path: 'app.capture_interval'
+    },
+    capture_delay_on_error: {
+        label: '캡쳐 에러 시 대기 시간',
+        type: 'number',
+        section: 'app',
+        path: 'app.capture_delay_on_error'
+    },
+    use_bit_blt_capture_mode: {
+        label: '비트블럭 캡쳐 모드 사용',
+        type: 'checkbox',
+        section: 'app',
+        path: 'app.use_bit_blt_capture_mode'
+    },
+    // Indicator 섹션
+    show_user_indicator: {
+        label: '표시 활성화',
+        type: 'checkbox',
+        section: 'indicator',
+        path: 'script.marker_indicator.show_user_indicator'
+    },
+    indicator_size: {
+        label: '표시 크기',
+        type: 'range',
+        section: 'indicator',
+        path: 'script.marker_indicator.indicator_size',
+        min: 30,
+        max: 100,
+        step: 5
+    },
+    indicator_color: {
+        label: '표시 색상',
+        type: 'color',
+        section: 'indicator',
+        path: 'script.marker_indicator.indicator_color'
+    },
+    indicator_initial_opacity: {
+        label: '시작 투명도',
+        type: 'range',
+        section: 'indicator',
+        path: 'script.marker_indicator.indicator_initial_opacity',
+        min: 0,
+        max: 1,
+        step: 0.05
+    },
+    indicator_duration: {
+        label: '애니메이션 지속 시간',
+        type: 'range',
+        section: 'indicator',
+        path: 'script.marker_indicator.indicator_duration',
+        min: 3,
+        max: 10,
+        step: 0.5
+    }
+};
 
 @customElement('gps-config-modal')
 export class ConfigModal extends HTMLElement {
@@ -21,6 +116,8 @@ export class ConfigModal extends HTMLElement {
         styleSheet.replaceSync(styles);
         shadow.adoptedStyleSheets = [styleSheet];
 
+        this.tempConfig = { ...persistentStore.getState().config };
+
         this.elements = {
             modal: this.createModal(),
             content: document.createElement('div'),
@@ -29,7 +126,6 @@ export class ConfigModal extends HTMLElement {
         };
 
         shadow.appendChild(this.elements.modal);
-        this.tempConfig = { ...persistentStore.getState().config };
         this.setupEventListeners();
     }
 
@@ -58,8 +154,13 @@ export class ConfigModal extends HTMLElement {
                     </div>
                 </div>
                 <footer class="gps-config-footer">
-                    <button class="gps-config-cancel">취소</button>
-                    <button class="gps-config-save">저장</button>
+                    <div class="footer-left">
+                        <button class="gps-config-reset">초기화</button>
+                    </div>
+                    <div class="footer-right">
+                        <button class="gps-config-cancel">취소</button>
+                        <button class="gps-config-save">저장</button>
+                    </div>
                 </footer>
             </div>
         `;
@@ -67,52 +168,54 @@ export class ConfigModal extends HTMLElement {
     }
 
     private createGeneralConfigInputs(): string {
-        const { config } = persistentStore.getState();
-        const labelMap: Record<keyof AppConfigData['app'], string> = {
-            auto_app_update: '앱 자동 업데이트',
-            auto_lib_update: '라이브러리 자동 업데이트',
-            capture_interval: '화면 캡쳐 간격',
-            capture_delay_on_error: '캡쳐 에러 시 대기 시간',
-            use_bit_blt_capture_mode: '비트블럭 캡쳐 모드 사용'
-        };
-
-        return Object.entries(config.app)
-            .map(([key, value]) => {
-                const configKey = key as keyof AppConfigData['app'];
-                return typeof value === 'boolean'
-                    ? this.createToggleSwitch(labelMap[configKey], configKey, value as boolean)
-                    : this.createNumberInput(labelMap[configKey], configKey, value as number);
-            })
+        return Object.entries(CONFIG_FIELDS)
+            .filter(([_, field]) => field.section === 'app')
+            .map(([key, field]) => this.createConfigInput(key, field))
             .join('');
     }
 
     private createIndicatorConfigInputs(): string {
-        const { config } = persistentStore.getState();
-        return `
-            <div class="config-item">
-                <label class="config-label">표시 활성화</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" data-key="show_user_indicator" data-section="indicator" 
-                        ${config.script.marker_indicator.show_user_indicator ? 'checked' : ''}>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div class="config-item">
-                <label class="config-label">표시 크기</label>
-                <input type="range" class="range-input" data-key="indicator_size" data-section="indicator"
-                    min="30" max="100" value="${config.script.marker_indicator.indicator_size}" step="5">
-            </div>
-            <div class="config-item">
-                <label class="config-label">표시 색상</label>
-                <input type="color" class="color-input" data-key="indicator_color" data-section="indicator"
-                    value="${config.script.marker_indicator.indicator_color}">
-            </div>
-            <div class="config-item">
-                <label class="config-label">시작 투명도</label>
-                <input type="range" class="range-input" data-key="indicator_initial_opacity" data-section="indicator"
-                    min="0" max="1" value="${config.script.marker_indicator.indicator_initial_opacity}" step="0.05">
-            </div>
-        `;
+        return Object.entries(CONFIG_FIELDS)
+            .filter(([_, field]) => field.section === 'indicator')
+            .map(([key, field]) => this.createConfigInput(key, field))
+            .join('');
+    }
+
+    private createConfigInput(key: string, field: ConfigField): string {
+        const value = this.getValueFromPath(this.tempConfig, field.path);
+        
+        switch (field.type) {
+            case 'checkbox':
+                return this.createToggleSwitch(field.label, key, value as boolean, field.section);
+            case 'range':
+                return `
+                    <div class="config-item">
+                        <label class="config-label">${field.label}</label>
+                        <div class="range-container">
+                            <input type="range" class="range-input" 
+                                data-key="${key}" 
+                                data-section="${field.section}"
+                                min="${field.min}" 
+                                max="${field.max}" 
+                                step="${field.step}"
+                                value="${value}">
+                            <div class="range-tooltip">${value}</div>
+                        </div>
+                    </div>
+                `;
+            case 'color':
+                return `
+                    <div class="config-item">
+                        <label class="config-label">${field.label}</label>
+                        <input type="color" class="color-input" 
+                            data-key="${key}" 
+                            data-section="${field.section}"
+                            value="${value}">
+                    </div>
+                `;
+            default:
+                return this.createNumberInput(field.label, key, value as number, field.section);
+        }
     }
 
     private setupEventListeners(): void {
@@ -121,35 +224,24 @@ export class ConfigModal extends HTMLElement {
         const closeBtn = modal.querySelector('.gps-config-close');
         const cancelBtn = modal.querySelector('.gps-config-cancel');
         const saveBtn = modal.querySelector('.gps-config-save');
+        const resetBtn = modal.querySelector('.gps-config-reset');
 
         backdrop?.addEventListener('click', () => this.hideModal());
         closeBtn?.addEventListener('click', () => this.hideModal());
         cancelBtn?.addEventListener('click', () => this.cancelConfig());
         saveBtn?.addEventListener('click', () => this.saveConfig());
+        resetBtn?.addEventListener('click', () => this.resetCurrentSection());
 
         // 입력 요소들의 변경 감지
         modal.querySelectorAll('input').forEach(input => {
             const key = input.dataset.key!;
-            const section = input.dataset.section;
+            const field = CONFIG_FIELDS[key];
             this.elements.inputs.set(key, input);
             
             input.addEventListener('change', () => {
                 const newConfig = { ...this.tempConfig };
-                if (section === 'indicator') {
-                    if (input.type === 'checkbox' && key === 'show_user_indicator') {
-                        newConfig.script.marker_indicator.show_user_indicator = input.checked;
-                    } else if (input.type === 'color' && key === 'indicator_color') {
-                        newConfig.script.marker_indicator.indicator_color = input.value;
-                    } else if (key === 'indicator_size' || key === 'indicator_initial_opacity') {
-                        newConfig.script.marker_indicator[key] = Number(input.value);
-                    }
-                } else {
-                    if (input.type === 'checkbox') {
-                        newConfig.app[key as 'auto_app_update' | 'auto_lib_update' | 'use_bit_blt_capture_mode'] = input.checked;
-                    } else {
-                        newConfig.app[key as 'capture_interval' | 'capture_delay_on_error'] = Number(input.value);
-                    }
-                }
+                const value = this.getInputValue(input, field.type);
+                this.setValueAtPath(newConfig, field.path, value);
                 this.tempConfig = newConfig;
             });
         });
@@ -161,6 +253,40 @@ export class ConfigModal extends HTMLElement {
                 const tabId = target.dataset.tab;
                 this.switchTab(tabId!);
             });
+        });
+
+        // range input의 실시간 값 업데이트
+        modal.querySelectorAll('.range-input').forEach(input => {
+            const tooltip = input.nextElementSibling as HTMLElement;
+            const rangeInput = input as HTMLInputElement;
+            
+            const updateTooltip = () => {
+                const value = rangeInput.value;
+                console.log(`updateTooltip value: ${value}`);
+                const min = Number(rangeInput.min) || 0;
+                console.log(`updateTooltip min: ${min}`);
+                const max = Number(rangeInput.max) || 100;
+                console.log(`updateTooltip max: ${max}`);
+                const range = max - min;
+                
+                // thumb의 반지름을 고려한 위치 계산
+                const thumbRadius = 8; // thumb의 반지름 (CSS와 일치해야 함)
+                const trackWidth = rangeInput.offsetWidth - (thumbRadius * 2);
+                console.log(`updateTooltip trackWidth: ${trackWidth}`);
+                const percent = ((Number(value) - min) / range);
+                console.log(`updateTooltip percent: ${percent}`);
+                const thumbPosition = (percent * trackWidth) + thumbRadius;
+                console.log(`updateTooltip thumbPosition: ${thumbPosition}`);
+                
+                tooltip.textContent = value;
+                tooltip.style.left = `${thumbPosition}px`;
+            };
+
+            // 초기 위치 설정 (DOM이 완전히 로드된 후)
+            setTimeout(updateTooltip, 0);
+            
+            // 값 변경 시 업데이트
+            rangeInput.addEventListener('input', updateTooltip);
         });
     }
 
@@ -177,10 +303,8 @@ export class ConfigModal extends HTMLElement {
         this.tempConfig = { ...persistentStore.getState().config };
         
         this.elements.inputs.forEach((input, key) => {
-            const section = input.dataset.section;
-            const value = section === 'indicator' 
-                ? this.tempConfig.script.marker_indicator[key as keyof AppConfigData['script']['marker_indicator']]
-                : this.tempConfig.app[key as keyof AppConfigData['app']];
+            const field = CONFIG_FIELDS[key];
+            const value = this.getValueFromPath(this.tempConfig, field.path);
 
             if (input.type === 'checkbox') {
                 input.checked = value as boolean;
@@ -211,7 +335,7 @@ export class ConfigModal extends HTMLElement {
         this.elements.modal.querySelector(`.tab-content[data-tab="${tabId}"]`)?.classList.add('active');
     }
 
-    private createToggleSwitch(label: string, key: string, value: boolean): string {
+    private createToggleSwitch(label: string, key: string, value: boolean, section: 'app' | 'indicator'): string {
         return `
             <div class="config-item">
                 <label class="config-label">${label}</label>
@@ -223,12 +347,70 @@ export class ConfigModal extends HTMLElement {
         `;
     }
 
-    private createNumberInput(label: string, key: string, value: number): string {
+    private createNumberInput(label: string, key: string, value: number, section: 'app' | 'indicator'): string {
         return `
             <div class="config-item">
                 <label class="config-label">${label}</label>
                 <input type="number" class="number-input" data-key="${key}" value="${value}">
             </div>
         `;
+    }
+
+    private getInputValue(input: HTMLInputElement, type: ConfigField['type']): any {
+        switch (type) {
+            case 'checkbox':
+                return input.checked;
+            case 'color':
+                return input.value;
+            default:
+                return Number(input.value);
+        }
+    }
+
+    private resetCurrentSection(): void {
+        const activeTab = this.elements.modal.querySelector('.tab-button.active');
+        const currentSection = activeTab?.getAttribute('data-tab') === 'general' ? 'app' : 'indicator';
+        
+        const defaultConfig = getDefaultConfig();
+        const newConfig = { ...this.tempConfig };
+
+        // 현재 섹션에 해당하는 필드들만 초기화
+        Object.entries(CONFIG_FIELDS)
+            .filter(([_, field]) => field.section === currentSection)
+            .forEach(([key, field]) => {
+                const defaultValue = this.getValueFromPath(defaultConfig, field.path);
+                this.setValueAtPath(newConfig, field.path, defaultValue);
+                
+                // UI 업데이트
+                const input = this.elements.inputs.get(key);
+                if (input) {
+                    if (input.type === 'checkbox') {
+                        input.checked = defaultValue as boolean;
+                    } else if (input.type === 'color') {
+                        input.value = defaultValue as string;
+                    } else {
+                        input.value = String(defaultValue);
+                        if (input.type === 'range') {
+                            const tooltip = input.nextElementSibling as HTMLElement;
+                            if (tooltip) tooltip.textContent = String(defaultValue);
+                        }
+                    }
+                }
+            });
+        
+        this.tempConfig = newConfig;
+    }
+
+    // 경로로부터 값을 가져오는 헬퍼 함수
+    private getValueFromPath(obj: any, path: string): any {
+        return path.split('.').reduce((acc, part) => acc?.[part], obj);
+    }
+
+    // 경로에 값을 설정하는 헬퍼 함수
+    private setValueAtPath(obj: any, path: string, value: any): void {
+        const parts = path.split('.');
+        const lastPart = parts.pop()!;
+        const target = parts.reduce((acc, part) => acc[part], obj);
+        target[lastPart] = value;
     }
 }

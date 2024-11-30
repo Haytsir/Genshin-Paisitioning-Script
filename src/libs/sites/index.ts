@@ -1,10 +1,10 @@
+import { PersistentState, persistentStore, sessionStore } from '../store';
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
 import { TrackData, UpdateData, loadCvat } from "../cvat";
 import { AppConfigData } from "./config";
 import { AppCommunication } from "../communication";
-import { PersistentState, persistentStore, sessionStore } from '../store';
 import { ConfigModal } from "@src/components/config-modal";
 
 export class MapSite {

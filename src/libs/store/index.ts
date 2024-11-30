@@ -1,4 +1,4 @@
-import {AppConfigData} from "@src/libs/sites/config";
+import {AppConfigData, getDefaultConfig} from "@src/libs/sites/config";
 
 type Listener<T> = (state: T) => void;
 
@@ -101,21 +101,7 @@ interface SessionState {
 // 영구 저장소 인스턴스
 export const persistentStore = new Store<PersistentState>({
     config: {
-        app: {
-            auto_app_update: true,
-            auto_lib_update: true,
-            capture_interval: 250,
-            capture_delay_on_error: 1000,
-            use_bit_blt_capture_mode: false
-        },
-        script: {
-            marker_indicator: {
-                show_user_indicator: true,
-                indicator_size: 45,
-                indicator_color: '#d3bc8e',
-                indicator_initial_opacity: 0.35
-            }
-        }
+        ...getDefaultConfig()
     }
 }, { 
     persist: true,

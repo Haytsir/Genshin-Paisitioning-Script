@@ -1,6 +1,6 @@
 import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
-import { sessionStore } from '@/src/libs/store';
+import { persistentStore, sessionStore } from '@src/libs/store';
 
 @customElement('gps-user-marker')
 export class UserMarker extends HTMLElement {
@@ -21,7 +21,7 @@ export class UserMarker extends HTMLElement {
         const indicator = document.createElement('div');
         indicator.classList.add('gps-user-marker-indicator');
         indicator.innerHTML = `
-            <div class="circle1"></div>
+            <div class="circle"></div>
             <div class="circle2"></div>
             <div class="circle3"></div>
         `;
@@ -36,6 +36,13 @@ export class UserMarker extends HTMLElement {
         
         sessionStore.subscribe((state) => {
             this.style.visibility = state.currentUser.isActive ? 'visible' : 'hidden';
+        });
+        persistentStore.subscribe((state) => {
+            indicator.style.visibility = state.config.script.marker_indicator.show_user_indicator ? 'visible' : 'hidden';
+            indicator.style.setProperty('--size', state.config.script.marker_indicator.indicator_size.toString());
+            indicator.style.setProperty('--color', state.config.script.marker_indicator.indicator_color);
+            indicator.style.setProperty('--initial-opacity', state.config.script.marker_indicator.indicator_initial_opacity.toString());
+            indicator.style.setProperty('--animation-duration', state.config.script.marker_indicator.indicator_duration.toString()+'s');
         });
     }
 }
