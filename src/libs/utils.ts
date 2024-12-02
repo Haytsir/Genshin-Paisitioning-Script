@@ -70,3 +70,7 @@ export function isTauri(): boolean {
 export function decodeSvg(svg: string): string {
     return decodeURIComponent(svg.substring(svg.indexOf(',')+1));
 }
+
+export function extractKeyFromList<T, K extends keyof T>(list: T[], key: K): T[K][] {
+    return list.map(item => item[key]);
+}

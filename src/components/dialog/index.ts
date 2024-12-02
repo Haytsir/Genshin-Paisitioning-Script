@@ -17,9 +17,6 @@ class Dialog extends HTMLElement {
     private isShowing = false;
     private isMinimized = false;
     private isProgressing = false;
-    private lastMessage: string = '';
-    private messageQueue: Set<string> = new Set();
-    private readonly MAX_QUEUE_SIZE = 10;
 
     static get observedAttributes() {
         return ['title', 'content', 'closable', 'show'];
@@ -83,10 +80,10 @@ class Dialog extends HTMLElement {
                     </div>
                     <div class="gps-dialog-content">
                         <div class="gps-dialog-content-text"></div>
-                    </div>
-                    <div class="gps-dialog-progress">
-                        <div class="gps-dialog-progress-bar">
-                            <div class="gps-dialog-progress-in"></div>
+                        <div class="gps-dialog-progress">
+                            <div class="gps-dialog-progress-in">
+                                <div class="progress-percentage">0%</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -121,44 +118,27 @@ class Dialog extends HTMLElement {
     }
 
     public alert(title: string, content: string, timeout = 0, closable = false) {
-        if (this.isDuplicateMessage(content)) {
-            return;
-        }
-
         this.setAttribute('title', title);
         this.setAttribute('content', content);
         this.setAttribute('closable', String(closable));
         this.setAttribute('show', 'true');
 
-        this.updateMessageQueue(content);
-
         if (timeout > 0) {
-            setTimeout(() => this.close(null, content), timeout);
+            setTimeout(() => this.close(null), timeout);
         }
-    }
-
-    private isDuplicateMessage(content: string): boolean {
-        return this.lastMessage === content || this.messageQueue.has(content);
-    }
-
-    private updateMessageQueue(content: string): void {
-        if (this.messageQueue.size >= this.MAX_QUEUE_SIZE) {
-            const oldestMessage = this.messageQueue.values().next().value;
-            this.messageQueue.delete(oldestMessage);
-        }
-
-        this.lastMessage = content;
-        this.messageQueue.add(content);
     }
 
     private toggleVisibility(show: boolean) {
         this.toggleClass('show', show);
         this.isShowing = show;
-
-        if (this.isMinimized && show) {
+        if(this.isMinimized && show) {
             this.toggleClass('new', true);
             setTimeout(() => this.toggleClass('new', false), 10);
         }
+    }
+
+    public close(_event: Event | null): void {
+        this.setAttribute('show', 'false');
     }
 
     public showProgress() {
@@ -170,26 +150,29 @@ class Dialog extends HTMLElement {
     public changeProgress(percent: number) {
         if (this.isProgressing) {
             this.elements.dialogContentProgressIn.style.width = `${percent}%`;
+            const percentageEl = this.shadowRoot!.querySelector('.progress-percentage');
+            if (percentageEl) {
+                percentageEl.textContent = `${Math.round(percent)}%`;
+            }
         }
     }
 
     public hideProgress() {
-        this.elements.dialogContentProgress.style.display = 'none';
-        this.elements.dialogContentProgressIn.style.width = '0%';
-        this.isProgressing = false;
+        if (this.isProgressing) {
+            this.elements.dialog.classList.add('complete');
+            setTimeout(() => {
+                this.elements.dialog.classList.remove('complete');
+                this.elements.dialogContentProgress.style.display = 'none';
+                this.elements.dialogContentProgressIn.style.width = '0%';
+                this.isProgressing = false;
+            }, 1000);  // 애니메이션이 끝난 후 상태 초기화
+        }
     }
 
     private toggleClass(className: string, force?: boolean): void {
         if (!this.elements?.dialog) return;
         
         this.elements.dialog.classList.toggle(className, force);
-    }
-
-    public close(_event: Event | null, content?: string): void {
-        if (content && content !== this.elements.dialogContentText.textContent) {
-            return;
-        }
-        this.setAttribute('show', 'false');
     }
 
     public minimize(): void {

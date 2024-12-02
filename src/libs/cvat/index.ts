@@ -20,7 +20,10 @@ export type TrackData = {
 
 type CvatError = {
     errorCode?: number;
-    errorList?: string[];
+    errorList?: Array<{
+        code: number;
+        msg: string;
+    }>;
 }
 
 export async function loadCvat(debug=false): Promise<void> {

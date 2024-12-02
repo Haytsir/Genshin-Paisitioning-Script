@@ -6,6 +6,13 @@ import { TrackData, UpdateData, loadCvat } from "../cvat";
 import { AppConfigData } from "./config";
 import { AppCommunication } from "../communication";
 import { ConfigModal } from "@src/components/config-modal";
+import { Toast } from "../../components/toast";
+import { extractKeyFromList } from '../utils';
+
+interface ErrorItem {
+    message: string;
+    details?: string;
+}
 
 export class MapSite {
     private static _instance: MapSite | null = null;
@@ -30,6 +37,7 @@ export class MapSite {
     public objectTargetFilterBtn: HTMLDivElement | null = null;
     protected communication: AppCommunication;
     public configModal: ConfigModal;
+    public toast: Toast;
 
     public static getInstance(): MapSite {
         if (!this._instance) {
@@ -50,6 +58,8 @@ export class MapSite {
         this.communication = new AppCommunication();
         this.configModal = new ConfigModal();
         this.root.appendChild(this.configModal);
+        this.toast = new Toast();
+        this.root.appendChild(this.toast);
 
         // WebSocket 핸들러 설정
         this.communication.setHandlers({
@@ -116,12 +126,20 @@ export class MapSite {
         this.eventListeners.clear();
     }
 
-    protected handleError(error?: Error): void {
-        this.dialog.alert(
-            'GPS',
-            error?.message || '알 수 없는 오류가 발생했습니다.',
-            5000
-        );
+    protected handleError(error: Error | ErrorItem | (Error | ErrorItem)[]): void {
+        const errors = Array.isArray(error) ? error : [error];
+        
+        errors.forEach(err => {
+            const message = err instanceof Error ? err.message : err.message;
+            const details = err instanceof Error ? err.stack : err.details;
+            
+            this.toast.show(
+                'error',
+                'GPS',
+                message,
+                details
+            );
+        });
     }
 
     protected async safeExecute<T>(
@@ -152,7 +170,7 @@ export class MapSite {
         });
         this.communication.connect().then(connected => {
             if (!connected) {
-                this.dialog.alert('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.', 10000);
+                this.toast.show('error', 'GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.');
                 this.onAppDeactivate();
             }
         });
@@ -295,10 +313,28 @@ export class MapSite {
     togglePin() {
         this.setPinned(!this.isPinned);
     }
+
     drawUserIcon() {
         const userIcon = document.createElement('div');
         userIcon.className = 'gps-user-icon';
         this.root.appendChild(userIcon);
+    }
+
+    onTrackEvent(event: MessageEvent|null, data: TrackData) {
+        if (!this.isActive) return;
+        if(event !== null) { // null이라면 MapSite를 상속한 클래스에서 처리하는 것이다.
+            const { debug } = sessionStore.getState().currentUser;
+            if(debug) {
+                console.debug("onTrackEvent", data);
+            }
+        }
+            
+        const { err } = data;
+        if(err?.errorList) {
+            const trackErrors: Error[] = extractKeyFromList(err.errorList, 'msg').map((msg: string) => new Error(msg));
+            this.handleError(trackErrors);
+            return;
+        }
     }
 
     private getDOMElement<T extends HTMLElement>(
@@ -308,28 +344,22 @@ export class MapSite {
         return context.querySelector<T>(selector);
     }
 
-    private updateUserMarkerPosition(x: number, y: number, dir: number, rot: number): void {
+    public updateUserMarkerPosition(x: number, y: number, dir: number, rot: number): void {
         if (!this.userMarker) return;
         
-        const transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-        this.userMarker.style.transform = transform;
-        
-        if (this.userMarker) {
-            this.userMarker.style.setProperty('--dir', `${-dir}deg`);
-            this.userMarker.style.setProperty('--rot', `${-rot}deg`);
-        }
-    }
+        let o = this.userMarker.style['transform']
+        let t, s, l, c;
+        t = 'translate'
+        s = this.userMarker.style["transform"].indexOf(t) + t.length + 1
+        l = this.userMarker.style["transform"].indexOf(')', s)
+        c = this.userMarker.style["transform"].substring(s, l)
 
-    // mapOnPos 또는 유사한 위치 업데이트 메서드에서 호출
-    protected mapOnPos(event: MessageEvent, data: TrackData): void {
-        if (!this.isActive) return;
+        let setValues = [Math.round(x)+'px', Math.round(y)+'px']
+
+        this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
         
-        const { x, y, a, r } = data;
-        this.updateUserMarkerPosition(x, y, a, r);
-        
-        if (this.isPinned) {
-            this.setFocusScroll(x, y);
-        }
+        this.userMarker.style.setProperty('--dir', 0 - dir + 'deg');
+        this.userMarker.style.setProperty('--rot', 0 - rot + 'deg');
     }
 
     protected registerWebSocketEvent<K extends keyof WebSocketEventMap>(

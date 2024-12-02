@@ -262,21 +262,15 @@ export class ConfigModal extends HTMLElement {
             
             const updateTooltip = () => {
                 const value = rangeInput.value;
-                console.log(`updateTooltip value: ${value}`);
                 const min = Number(rangeInput.min) || 0;
-                console.log(`updateTooltip min: ${min}`);
                 const max = Number(rangeInput.max) || 100;
-                console.log(`updateTooltip max: ${max}`);
                 const range = max - min;
                 
                 // thumb의 반지름을 고려한 위치 계산
                 const thumbRadius = 8; // thumb의 반지름 (CSS와 일치해야 함)
                 const trackWidth = rangeInput.offsetWidth - (thumbRadius * 2);
-                console.log(`updateTooltip trackWidth: ${trackWidth}`);
                 const percent = ((Number(value) - min) / range);
-                console.log(`updateTooltip percent: ${percent}`);
                 const thumbPosition = (percent * trackWidth) + thumbRadius;
-                console.log(`updateTooltip thumbPosition: ${thumbPosition}`);
                 
                 tooltip.textContent = value;
                 tooltip.style.left = `${thumbPosition}px`;

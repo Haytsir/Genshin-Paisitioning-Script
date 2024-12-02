@@ -47,7 +47,7 @@ export class GamedotMaps extends MapSite {
 
         this.communication.setHandlers({
             onLibInit: (e, d) => this.onLibInit(e, d),
-            onTrackEvent: (e, d) => this.mapOnPos(e, d)
+            onTrackEvent: (e, d) => this.onTrackEvent(e, d)
         });
 
         const menu = document.getElementById('mapsMenu');
@@ -112,14 +112,12 @@ export class GamedotMaps extends MapSite {
             unsafeWindow.objectViewer.scrollTo({top: scrollY, left: scrollX, behavior: 'smooth'});
         }
     }
-    mapOnPos(_event: MessageEvent, posobj: TrackData) {
-        let { m, x, y, r: rot, a: dir, err } = posobj;
-        if(err) {
-            this.dialog.alert('GPS', '위치를 얻는 도중 오류가 발생했습니다.', 0, true);
-            return;
-        }
-        if(this.dialog.showing){
-            this.dialog.alert('GPS', '위치를 얻는 도중 오류가 발생했습니다.');
+    onTrackEvent(_event: MessageEvent, posobj: TrackData) {
+        let { m, x, y, r: rot, a: dir } = posobj;
+        super.onTrackEvent(null, posobj);
+        const { debug } = sessionStore.getState().currentUser;
+        if(debug) {
+            console.debug("gamedot:onTrackEvent", posobj);
         }
         if(this.currentMap !== m) {
             if(this.mcEnsure < 10) {
@@ -132,31 +130,31 @@ export class GamedotMaps extends MapSite {
                     if(mapName)
                         this.onPlayerMovedMap(mapName);
                 } else {
-                    this.dialog.alert('GPS', '알 수 없는 지도입니다.');
+                    this.handleError(new Error('알 수 없는 지도입니다.'));
                 }
             }
         } else {
-            const pos = [y, x];
+            const pos = [x, y];
             switch (this.currentMap) {
                 case 0:
-                    pos[0] = (pos[0] + 5890) / 2;
-                    pos[1] = (pos[1] - 2285) / 2;
+                    pos[0] = (pos[0]) / 2;
+                    pos[1] = (pos[1]) / 2;
                     break;
                 case 1:
-                    pos[0] = ((pos[0])*1.275) - 670;
-                    pos[1] = ((pos[1])*1.275) - 2247;
+                    pos[0] = ((pos[0])*1.275) - 2247;
+                    pos[1] = ((pos[1])*1.275) - 670;
                     break;
                 case 2:
-                    pos[0] = ((pos[0])*1.275) - 225;
-                    pos[1] = ((pos[1])*1.275) - 2060;
+                    pos[0] = ((pos[0])*1.275) - 2060;
+                    pos[1] = ((pos[1])*1.275) - 225;
                     break;
                 default:
-                    pos[0] = (pos[0] + 5890) / 2;
-                    pos[1] = (pos[1] - 2285) / 2;
+                    pos[0] = (pos[0]) / 2;
+                    pos[1] = (pos[1]) / 2;
             }
             let rpos=[pos[0], pos[1]]
-            rpos[0] = pos[0]+unsafeWindow.MAPS_RelativeY-13;
-            rpos[1] = pos[1]+unsafeWindow.MAPS_RelativeX-8;
+            rpos[0] = pos[0]+unsafeWindow.MAPS_RelativeX;
+            rpos[1] = pos[1]+unsafeWindow.MAPS_RelativeY;
             if (this.isPinned) {
                 let distance =  Math.pow(this.focusPos[0] - pos[0], 2) +
                                         Math.pow(this.focusPos[1] - pos[1], 2)
@@ -164,7 +162,7 @@ export class GamedotMaps extends MapSite {
                 if(distance > 15) {
                     this.focusPos[0] = pos[0]
                     this.focusPos[1] = pos[1]
-                    this.setFocusPoint(pos[1], pos[0]);
+                    this.setFocusPoint(pos[0], pos[1]);
                 }
             }
             let o = this.userMarker.style['transform']
@@ -174,10 +172,8 @@ export class GamedotMaps extends MapSite {
             l = this.userMarker.style["transform"].indexOf(')', s)
             c = this.userMarker.style["transform"].substring(s, l)
 
-            let setValues = [Math.round(rpos[1])+'px', Math.round(rpos[0])+'px']
-
+            let setValues = [Math.round(rpos[0])+'px', Math.round(rpos[1])+'px']
             this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
-            
             this.userMarker.style.setProperty('--dir', 0 - dir + 'deg');
             this.userMarker.style.setProperty('--rot', 0 - rot + 'deg');
         }

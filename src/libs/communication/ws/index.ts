@@ -195,7 +195,7 @@ export class WebSocketManager implements CommunicationManager {
         const debug = sessionStore.getState().currentUser.debug;
         try {
             const msg = JSON.parse(event.data) as WebSocketMessage;
-            if(debug){
+            if(debug && msg.event !== 'track'){
                 console.debug(`Message: ${msg.event}`);
                 console.debug(msg.data);
             }
