@@ -58,13 +58,13 @@ const CONFIG_FIELDS: Record<string, ConfigField> = {
     },
     // Indicator 섹션
     show_user_indicator: {
-        label: '표시 활성화',
+        label: '위치 마커 시인성 표시 활성화',
         type: 'checkbox',
         section: 'indicator',
         path: 'script.marker_indicator.show_user_indicator'
     },
     indicator_size: {
-        label: '표시 크기',
+        label: '위치 마커 시인성 표시 크기',
         type: 'range',
         section: 'indicator',
         path: 'script.marker_indicator.indicator_size',
@@ -73,13 +73,13 @@ const CONFIG_FIELDS: Record<string, ConfigField> = {
         step: 5
     },
     indicator_color: {
-        label: '표시 색상',
+        label: '위치 마커 시인성 표시 색상',
         type: 'color',
         section: 'indicator',
         path: 'script.marker_indicator.indicator_color'
     },
     indicator_initial_opacity: {
-        label: '시작 투명도',
+        label: '위치 마커 시인성 시작 투명도',
         type: 'range',
         section: 'indicator',
         path: 'script.marker_indicator.indicator_initial_opacity',
@@ -88,7 +88,7 @@ const CONFIG_FIELDS: Record<string, ConfigField> = {
         step: 0.05
     },
     indicator_duration: {
-        label: '애니메이션 지속 시간',
+        label: '위치 마커 시인성 애니메이션 지속 시간',
         type: 'range',
         section: 'indicator',
         path: 'script.marker_indicator.indicator_duration',
@@ -143,7 +143,7 @@ export class ConfigModal extends HTMLElement {
                 </header>
                 <div class="gps-config-tabs">
                     <button class="tab-button active" data-tab="general">일반</button>
-                    <button class="tab-button" data-tab="indicator">표시</button>
+                    <button class="tab-button" data-tab="indicator">위치 마커</button>
                 </div>
                 <div class="gps-config-body">
                     <div class="tab-content active" data-tab="general">

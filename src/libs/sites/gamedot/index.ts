@@ -137,8 +137,8 @@ export class GamedotMaps extends MapSite {
             const pos = [x, y];
             switch (this.currentMap) {
                 case 0:
-                    pos[0] = (pos[0]) / 2;
-                    pos[1] = (pos[1]) / 2;
+                    pos[0] = (pos[0] - 2285) / 2;
+                    pos[1] = (pos[1] + 5890) / 2;
                     break;
                 case 1:
                     pos[0] = ((pos[0])*1.275) - 2247;
@@ -149,8 +149,8 @@ export class GamedotMaps extends MapSite {
                     pos[1] = ((pos[1])*1.275) - 225;
                     break;
                 default:
-                    pos[0] = (pos[0]) / 2;
-                    pos[1] = (pos[1]) / 2;
+                    pos[0] = (pos[0] - 2285) / 2;
+                    pos[1] = (pos[1] + 5890) / 2;
             }
             let rpos=[pos[0], pos[1]]
             rpos[0] = pos[0]+unsafeWindow.MAPS_RelativeX;
