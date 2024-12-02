@@ -8,7 +8,7 @@
     "url": "https://github.com/Haytsir/Genshin-Paisitioning-Script"
   },
   "private": true,
-  "version": "1.7.0-beta",
+  "version": "1.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
