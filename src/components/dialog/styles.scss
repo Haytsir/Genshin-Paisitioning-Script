@@ -1,0 +1,286 @@
+:host {
+    --dialog-bg: var(--background);
+    --dialog-text: var(--text);
+    --dialog-border: rgba(0, 0, 0, 0.1);
+    --dialog-shadow: rgba(0, 0, 0, 0.1);
+    --dialog-progress: #d3bc8e;
+    --dialog-error: #dc3545;
+    --dialog-warning: #ffc107;
+    --dialog-success: #28a745;
+    --dialog-minimize: #c4b188;
+    --dialog-progress-height: 4px;
+    --dialog-blur: 8px;
+}
+
+.gps-dialog {
+    width: 320px;
+    position: fixed;
+    right: -100%;
+    opacity: 0;
+    bottom: 18em;
+    z-index: 9999;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: blur(var(--dialog-blur));
+    transform: translateY(20px);
+
+    &.show {
+        right: 1.5rem;
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0);
+    }
+}
+
+.gps-dialog-container {
+    background: var(--dialog-bg);
+    border-radius: 20px;
+    box-shadow: 
+        0 4px 6px -1px var(--dialog-shadow),
+        0 2px 4px -2px var(--dialog-shadow);
+    overflow: visible;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+.gps-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    
+    .gps-dialog-title-area {
+        flex: 1;
+        
+        .gps-dialog-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--dialog-text);
+            letter-spacing: -0.01em;
+        }
+    }
+    
+    .gps-dialog-buttons {
+        display: flex;
+        gap: 4px;
+        margin-left: 16px;
+
+        button {
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 12px;
+            color: var(--dialog-text);
+            opacity: 0.6;
+            transition: all 0.2s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            &:hover {
+                opacity: 1;
+                background: rgba(255, 255, 255, 0.06);
+            }
+
+            span {
+                display: inline-block;
+                line-height: 1;
+            }
+        }
+
+        .gps-dialog-minimize span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .gps-dialog-close span {
+            font-size: 18px;
+        }
+    }
+}
+
+.gps-dialog-content {
+    padding: 16px 20px;
+    position: relative;
+    background: var(--dialog-bg);
+    
+    .gps-dialog-content-text {
+        color: var(--dialog-text);
+        line-height: 1.6;
+        font-size: 14px;
+        margin: 0;
+        opacity: 0.9;
+    }
+}
+
+.gps-dialog-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0px;
+    height: var(--dialog-progress-height);
+    background: rgba(0, 0, 0, 0.1);
+    overflow: visible;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    border-bottom-left-radius: 2px;
+    border-bottom-right-radius: 2px;
+
+    &.show {
+        transform: translateY(0);
+    }
+
+    .gps-dialog-progress-in {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: var(--dialog-progress);
+        width: 0;
+        transition: width 0.3s ease;
+        box-shadow: 
+            0 0 20px var(--dialog-progress),
+            0 0 10px var(--dialog-progress),
+            0 0 5px var(--dialog-progress);
+        border-bottom-left-radius: 2px;
+        border-bottom-right-radius: 2px;
+    }
+
+    .progress-percentage {
+        position: absolute;
+        right: -38px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: var(--dialog-text);
+        z-index: 1;
+        font-weight: 500;
+        background: var(--dialog-bg);
+        padding: 2px 6px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+}
+
+// 최소화 상태
+.gps-dialog.minimized {
+    .gps-dialog-container {
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+        background: var(--dialog-minimize);
+        box-shadow: 
+            0 4px 12px -1px rgba(0, 0, 0, 0.2),
+            0 2px 6px -2px rgba(0, 0, 0, 0.1);
+    }
+
+    .gps-dialog-header {
+        padding: 8px;
+        border: none;
+        justify-content: center;
+
+        .gps-dialog-title-area {
+            display: none;
+        }
+
+        .gps-dialog-buttons {
+            margin: 0;
+            
+            .gps-dialog-close {
+                display: none;
+            }
+
+            .gps-dialog-minimize {
+                color: white;
+                opacity: 1;
+                
+                &:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+            }
+        }
+    }
+
+    .gps-dialog-content,
+    .gps-dialog-progress {
+        display: none;
+    }
+
+    &.new .gps-dialog-container {
+        animation: pulse 1s;
+    }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes dialog-complete {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(-12px); }
+    75% { transform: translateY(8px); }
+}
+
+@keyframes check-mark {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes progress-shine {
+    100% { transform: translateX(100%); }
+}
+
+@media screen and (max-width: 768px) {
+    .gps-dialog {
+        bottom: 5em;
+        
+        &.show {
+            right: 1rem;
+        }
+    }
+}
+
+@media screen and (max-height: 500px) {
+    .gps-dialog {
+        bottom: 3vh;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .gps-dialog-container {
+        background: rgb(30, 30, 30);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .gps-dialog-content {
+        background: rgb(30, 30, 30);
+    }
+
+    .gps-dialog-buttons button:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .gps-dialog-progress {
+        background: transparent;
+
+        .progress-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    }
+}

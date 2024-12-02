@@ -1,0 +1,96 @@
+/*gps-action-menu*/
+:host {
+    width: 100%;
+    bottom: 20px;
+    left: 20px;
+    z-index: 99999999;
+    margin-bottom: -10px;
+}
+
+gps-action-menu svg {
+    width: 80%;
+    fill: #aaa;
+}
+
+#maps-menu gps-action-menu svg {
+    fill: #373a3c;
+}
+
+gps-action-menu .gps-pin.active svg {
+    fill: #ffc107;
+}
+
+gps-action-menu-item {
+    position: relative;
+    width: 100%;
+    height: 38px;
+    text-align: center;
+    padding: 13px 0;
+    color: var(--text);
+    cursor: pointer;
+
+    &:last-child {
+        margin-right: 0;
+    }
+
+    svg,
+    img,
+    .mask-image {
+        position: relative;
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+    }
+
+    &:not(:defined) {
+        display: none;
+    }
+
+    &>svg {
+        fill: var(--text);
+    }
+
+    &.active>svg {
+        fill: var(--focus);
+    }
+
+    &.active>.mask-image {
+        background-color: var(--focus);
+    }
+
+    &>.mask-image {
+        background-color: var(--text);
+        mask-repeat: no-repeat;
+        mask-position: center left;
+        mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        -webkit-mask-position: center left;
+        -webkit-mask-size: contain;
+    }
+
+    &>p {
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .logo-container {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+
+        svg {
+            width: 100%;
+            height: 100%;
+            fill: var(--text);
+        }
+
+        img {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    &.active .logo-container svg {
+        fill: var(--focus);
+    }
+}

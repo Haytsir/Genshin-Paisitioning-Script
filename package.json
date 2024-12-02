@@ -1,8 +1,14 @@
 {
   "name": "genshin-paisitioning-script",
+  "displayName": "Genshin-Paisitioning Script",
+  "description": "A script to help you position your characters in Genshin Impact using genshin.gamedot.org Interactive Map",
   "author": "Haytsir",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Haytsir/Genshin-Paisitioning-Script"
+  },
   "private": true,
-  "version": "1.6.10",
+  "version": "1.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,9 +16,10 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "sass": "^1.62.0",
-    "terser": "^5.17.1",
-    "vite": "^5.4.3",
-    "vite-plugin-monkey": "^4.0.6"
+    "@types/node": "22.5.4",
+    "sass": "1.78.0",
+    "terser": "5.32.0",
+    "vite": "6.0.1",
+    "vite-plugin-monkey": "4.0.6"
   }
 }

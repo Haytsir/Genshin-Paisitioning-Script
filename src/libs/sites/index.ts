@@ -1,22 +1,29 @@
-import { GM_getValue, GM_setValue } from "$";
+import { PersistentState, persistentStore, sessionStore } from '../store';
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
-import { UpdateData, loadCvat } from "../cvat";
-import { WebSocketManager } from "../ws";
-import { Config, ConfigData } from "./config";
+import { TrackData, UpdateData, loadCvat } from "../cvat";
+import { AppConfigData } from "./config";
+import { AppCommunication } from "../communication";
+import { ConfigModal } from "@src/components/config-modal";
+import { Toast } from "../../components/toast";
+import { extractKeyFromList } from '../utils';
+
+interface ErrorItem {
+    message: string;
+    details?: string;
+}
 
 export class MapSite {
-    static #instance: MapSite;
+    private static _instance: MapSite | null = null;
     public root: HTMLDivElement;
     public dialog: Dialog;
     public actionMenu: ActionMenu;
     public userMarker: UserMarker;
-    public config!: Config;
+    public config!: AppConfigData;
     public siteHost: string;
     public isPinned: boolean;
     public currentMap: number;
-    public ws: WebSocketManager;
     public mapElement: HTMLDivElement | null = null;
     public isActive: boolean = false;
     // Load 버튼을 비활성화 하는 컨트롤러
@@ -25,42 +32,128 @@ export class MapSite {
     // Load 상태에서 활성화되는 버튼을 비활성화시키는 컨트롤러
     private _activeAbortController = new AbortController();
     private _activeAbortSignal = this._activeAbortController.signal;
+    private readonly eventListeners: Map<string, EventListener> = new Map();
+    public objectPanelMenu: HTMLDivElement | null = null;
+    public objectTargetFilterBtn: HTMLDivElement | null = null;
+    protected communication: AppCommunication;
+    public configModal: ConfigModal;
+    public toast: Toast;
 
-    static get instance(): MapSite {
-        if(!MapSite.#instance) MapSite.#instance = new MapSite();
-        return MapSite.#instance;
+    public static getInstance(): MapSite {
+        if (!this._instance) {
+            this._instance = new MapSite();
+        }
+        return this._instance;
     }
-    constructor() {
+    protected constructor() {
         this.root = document.createElement('div');
         this.root.id = 'gps-root';
         this.siteHost = location.host;
         this.root.classList.add(this.siteHost.replace(/\./g, '-'));
         this.actionMenu = new ActionMenu();
-        this.root.appendChild(this.actionMenu.actionMenu);
+        this.root.appendChild(this.actionMenu);
         this.dialog = new Dialog();
-        this.root.appendChild(this.dialog.dialog);
+        this.root.appendChild(this.dialog);
         this.userMarker = new UserMarker();
-        this.ws = WebSocketManager.instance;
+        this.communication = new AppCommunication();
+        this.configModal = new ConfigModal();
+        this.root.appendChild(this.configModal);
+        this.toast = new Toast();
+        this.root.appendChild(this.toast);
 
-        this.ws.onGetConfig = (e, d) => this.onGetConfig(e, d);
-        this.ws.onAppUpdateProgress = (e, d) => this.onAppUpdateProgress(e, d);
-        this.ws.onAppUpdateDone = (e, d) => this.onAppUpdateDone(e, d);
-        this.ws.onLibUpdateProgress = (e, d) => this.onLibUpdateProgress(e, d);
-        this.ws.onLibUpdateDone = (e, d) => this.onLibUpdateDone(e, d);
+        // WebSocket 핸들러 설정
+        this.communication.setHandlers({
+            onGetConfig: (e, d) => this.onGetConfig(e, d),
+            onAppUpdateProgress: (e, d) => this.onAppUpdateProgress(e, d),
+            onAppUpdateDone: (e, d) => this.onAppUpdateDone(e, d),
+            onLibUpdateProgress: (e, d) => this.onLibUpdateProgress(e, d),
+            onLibUpdateDone: (e, d) => this.onLibUpdateDone(e, d)
+        });
 
-        // 다른 데이터를 필요로 하지 않고, 단순히 이벤트를 받기만 하는 경우에는 유연함을 위해 별도로 이벤트 리스너를 등록한다.
-        this.ws.addSocketEventListener('close', (e) => this.onSocketClose(e));
-        this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
-        this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
-        this.actionMenu.actionPin.addEventListener('click', (e) => this.onClickPinBtn(e));
-        this.actionMenu.actionPin.addEventListener('contextmenu', (e) => this.onRightClickPinBtn(e));
+        // WebSocket 이벤트 등록
+        this.communication.addEventListener('close', this.onSocketClose);
+        
+        // 기존 DOM 이벤트 등록
+        this.registerEventListener(this.actionMenu.actionConnect, 'click', 
+            (e) => this.onClickLoadPluginBtn(e, false), 
+            {signal: this._loadAbortSignal}
+        );
+        this.registerEventListener(this.actionMenu.actionConnect, 'contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
+        this.registerEventListener(this.actionMenu.actionPin, 'click', this.onClickPinBtn);
+        this.registerEventListener(this.actionMenu.actionPin, 'contextmenu', this.onRightClickPinBtn);
+        
         this.isPinned = true;
         if(this.isPinned) {
-            this.userMarker.userMarker.classList.add('gps-pinned')
-            this.actionMenu.actionPin.classList.add('gps-pinned');
+            this.userMarker.classList.add('active')
+            this.actionMenu.actionPin.classList.add('active');
         }
         this.currentMap = 0;
+
+        this.mapElement = this.getDOMElement<HTMLDivElement>('#objectViewer');
+        this.objectPanelMenu = this.getDOMElement<HTMLDivElement>('#mapsMenu');
+        this.objectTargetFilterBtn = this.getDOMElement<HTMLDivElement>('#mapsAreaFilter div[data-value="unset"]');
+
+        persistentStore.subscribe((state: PersistentState) => {
+            if(!Object.is(this.config, state.config)) {
+                const {debug} = sessionStore.getState().currentUser;
+                if(debug) {
+                    console.debug('설정 변경됨', state.config);
+                }
+                this.config = state.config;
+                this.communication.sendConfig(this.config);
+            }
+        });
     }
+
+    protected registerEventListener<K extends keyof HTMLElementEventMap>(
+        element: HTMLElement,
+        event: K,
+        handler: (event: HTMLElementEventMap[K]) => void,
+        options?: AddEventListenerOptions
+    ): void {
+        const boundHandler = handler.bind(this);
+        this.eventListeners.set(`${element.id}-${event}`, boundHandler as EventListener);
+        element.addEventListener(event, boundHandler, options);
+    }
+
+    public destroy(): void {
+        this.communication.destroy();
+        this.eventListeners.forEach((handler, key) => {
+            const [elementId, event] = key.split('-');
+            const element = document.getElementById(elementId);
+            element?.removeEventListener(event, handler);
+        });
+        this.eventListeners.clear();
+    }
+
+    protected handleError(error: Error | ErrorItem | (Error | ErrorItem)[]): void {
+        const errors = Array.isArray(error) ? error : [error];
+        
+        errors.forEach(err => {
+            const message = err instanceof Error ? err.message : err.message;
+            const details = err instanceof Error ? err.stack : err.details;
+            
+            this.toast.show(
+                'error',
+                'GPS',
+                message,
+                details
+            );
+        });
+    }
+
+    protected async safeExecute<T>(
+        operation: () => Promise<T>,
+        errorMessage: string
+    ): Promise<T | null> {
+        try {
+            return await operation();
+        } catch (error) {
+            this.handleError(error instanceof Error ? error : new Error(errorMessage));
+            return null;
+        }
+    }
+
     onClickLoadPluginBtn(event: MouseEvent, debug: boolean) {
         this._loadAbortController.abort();
         event.preventDefault();
@@ -69,10 +162,15 @@ export class MapSite {
     }
     loadPlugin(debug: boolean) {
         loadCvat(debug);
-        GM_setValue('debug', debug);
-        this.ws.getSocket().then((socket) => {
-            if(socket == null) {
-                this.dialog.alertDialog('GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.', 10000);
+        sessionStore.setState({
+            currentUser: {
+                ...sessionStore.getState().currentUser,
+                debug: debug
+            }
+        });
+        this.communication.connect().then(connected => {
+            if (!connected) {
+                this.toast.show('error', 'GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.');
                 this.onAppDeactivate();
             }
         });
@@ -88,39 +186,39 @@ export class MapSite {
         // $map.control.debugCapture();
     }
     onStartAppUpdate(_event: MessageEvent, data: UpdateData) {
-        this.dialog.alertDialog('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, 0, false);
+        this.dialog.alert('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, 0, false);
         this.dialog.showProgress();
     }
 
     onAppUpdateProgress(event: MessageEvent, data: UpdateData) {
-        if(!this.dialog.isProgressing) {
+        if(!this.dialog.progressing) {
             this.onStartAppUpdate(event, data)
         }
         this.dialog.changeProgress(data.percent);
     }
 
     onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
-        if(this.dialog.isShowing && this.dialog.isProgressing) {
-            this.dialog.closeDialog(null, `GPA ${data.targetVersion} 버전 업데이트 중...`);
+        if(this.dialog.showing && this.dialog.progressing) {
+            this.dialog.close(null, `GPA ${data.targetVersion} 버전 업데이트 중...`);
             this.dialog.hideProgress();
         }
         if(data.updated) {
             // 모든 과정을 초기화하고 다시 시작.
-            this.dialog.alertDialog('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.');
-            this.ws.closeSocket();
+            this.dialog.alert('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.');
+            this.communication.close();
             this.onAppDeactivate();
-            this.loadPlugin(GM_getValue('debug', false));
+            this.loadPlugin(sessionStore.getState().currentUser.debug);
         }
     }
 
     onStartLibUpdate(_event: MessageEvent, data: UpdateData) {
-        this.dialog.alertDialog('GPS', `라이브러리 ${data.targetVersion} 버전 업데이트 중...`, 0, false);
+        this.dialog.alert('GPS', `라이브러리 ${data.targetVersion} 버전 업데이트 중...`, 0, false);
         this.dialog.showProgress();
     }
 
     onLibUpdateProgress(event: MessageEvent, data: UpdateData) {
         console.debug("onLibUpdateProgress")
-        if(!this.dialog.isProgressing) {
+        if(!this.dialog.progressing) {
             this.onStartLibUpdate(event, data)
         }
         this.dialog.changeProgress(data.percent);
@@ -128,8 +226,8 @@ export class MapSite {
 
     onLibUpdateDone(_event: MessageEvent, data: UpdateData) {
         console.debug("onLibUpdateDone")
-        if(this.dialog.isShowing && this.dialog.isProgressing) {
-            this.dialog.closeDialog(null, `라이브러리 ${data.targetVersion} 버전 업데이트 중...`);
+        if(this.dialog.showing && this.dialog.progressing) {
+            this.dialog.close(null, `라이브러리 ${data.targetVersion} 버전 업데이트 중...`);
             this.dialog.hideProgress();
         }
     }
@@ -137,67 +235,67 @@ export class MapSite {
         this.onAppDeactivate();
     }
 
-    onGetConfig(_event:MessageEvent, config: ConfigData) {
-        this.config = new Config({
-            auto_app_update: GM_getValue('auto_app_update', true),
-            auto_lib_update: GM_getValue('auto_lib_update', true),
-            capture_interval: config.capture_interval,
-            capture_delay_on_error: config.capture_delay_on_error,
-            use_bit_blt_capture_mode: config.use_bit_blt_capture_mode,
-        });
+    onGetConfig(_event:MessageEvent, config: AppConfigData) {
+        this.config = persistentStore.getState().config;
         // Config을 얻었다는 것은 GPA가 연결되었다는 것, 활성화가 된 것으로 표시한다.
         this.onAppActivate(config)
-        this.config.onConfigChanged = (c) => this.onConfigChanged(c);
     }
-    onAppActivate(_config: ConfigData) {
+    onAppActivate(_config: AppConfigData | null = null) {
         this.isActive = true;
+        sessionStore.setState({ 
+            currentUser: {
+                ...sessionStore.getState().currentUser,
+                isActive: true
+            }
+        });
         this.dialog.hideProgress();
         document.body.classList.add('gps-activated');
-        this.actionMenu.actionMenu.classList.add('gps-active');
+        this.actionMenu.classList.add('gps-active');
         this.actionMenu.actionConnect.classList.add('gps-active');
         this.actionMenu.actionConfig.classList.add('gps-active');
-
         this._loadAbortController.abort();
 
         this._activeAbortController = new AbortController();
         this._activeAbortSignal = this._activeAbortController.signal;
-        this.actionMenu.actionConfig.addEventListener('click', (e) => this.config.modal.showModal(e), {signal: this._activeAbortSignal});
-
+        this.actionMenu.actionConfig.addEventListener('click', (e) => this.configModal.showModal(), {signal: this._activeAbortSignal});
+        this.setPinned(true);
     }
     onAppDeactivate() {
+        this.onAppDeactivate();
         this.isActive = false;
+        sessionStore.setState({ 
+            currentUser: {
+                ...sessionStore.getState().currentUser,
+                isActive: false
+            }
+        });
         this._loadAbortController = new AbortController();
         this._loadAbortSignal = this._loadAbortController.signal;
         this.actionMenu.actionConnect.addEventListener('click', (e) => this.onClickLoadPluginBtn(e, false), {signal: this._loadAbortSignal});
         this.actionMenu.actionConnect.addEventListener('contextmenu', (e) => this.onClickLoadPluginBtn(e, true), {signal: this._loadAbortSignal});
 
         document.body.classList.remove('gps-activated');
-        this.actionMenu.actionMenu.classList.remove('gps-active');
+        this.actionMenu.classList.remove('gps-active');
         this.actionMenu.actionConnect.classList.remove('gps-active');
         this.actionMenu.actionConfig.classList.remove('gps-active');
         this._activeAbortController.abort();
     }
-    onConfigChanged(config: ConfigData) {
-        GM_setValue('auto_app_update', config.auto_app_update);
-        GM_setValue('auto_lib_update', config.auto_lib_update);
-        this.ws.sendConfig(config);
-    }
     setFocusScroll(_x: number, _y: number) {}
     appendUserMarker(parent: Element) {
-        parent.appendChild(this.userMarker.userMarker);
+        parent.appendChild(this.userMarker);
     }
     setPinned(p: boolean) {
         this.isPinned = p;
         if (this.isPinned) {
-            this.actionMenu.actionPin.classList.add('gps-pinned');
-            if(this.userMarker.userMarker) {
-                this.userMarker.userMarker.classList.add('gps-pinned')
+            this.actionMenu.actionPin.classList.add('active');
+            if(this.userMarker) {
+                this.userMarker.classList.add('active')
                 let x, y;
                 let t, s, l, c;
                 t = 'translate'
-                s = this.userMarker.userMarker.style["transform"].indexOf(t) + t.length + 1;
-                l = this.userMarker.userMarker.style["transform"].indexOf(')', s);
-                c = this.userMarker.userMarker.style["transform"].substring(s, l);
+                s = this.userMarker.style["transform"].indexOf(t) + t.length + 1;
+                l = this.userMarker.style["transform"].indexOf(')', s);
+                c = this.userMarker.style["transform"].substring(s, l);
 
                 if (c) {
                     [x, y] = c.split(', ')
@@ -207,17 +305,70 @@ export class MapSite {
                 }
             }
         } else {
-            this.actionMenu.actionPin.classList.remove('gps-pinned');
-            if(this.userMarker.userMarker)
-                this.userMarker.userMarker.classList.remove('gps-pinned')
+            this.actionMenu.actionPin.classList.remove('active');
+            if(this.userMarker)
+                this.userMarker.classList.remove('active')
         }
     }
     togglePin() {
         this.setPinned(!this.isPinned);
     }
+
     drawUserIcon() {
         const userIcon = document.createElement('div');
         userIcon.className = 'gps-user-icon';
         this.root.appendChild(userIcon);
+    }
+
+    onTrackEvent(event: MessageEvent|null, data: TrackData) {
+        if (!this.isActive) return;
+        if(event !== null) { // null이라면 MapSite를 상속한 클래스에서 처리하는 것이다.
+            const { debug } = sessionStore.getState().currentUser;
+            if(debug) {
+                console.debug("onTrackEvent", data);
+            }
+        }
+            
+        const { err } = data;
+        if(err?.errorList) {
+            const trackErrors: Error[] = extractKeyFromList(err.errorList, 'msg').map((msg: string) => new Error(msg));
+            this.handleError(trackErrors);
+            return;
+        }
+    }
+
+    private getDOMElement<T extends HTMLElement>(
+        selector: string,
+        context: Document | HTMLElement = document
+    ): T | null {
+        return context.querySelector<T>(selector);
+    }
+
+    public updateUserMarkerPosition(x: number, y: number, dir: number, rot: number): void {
+        if (!this.userMarker) return;
+        
+        let o = this.userMarker.style['transform']
+        let t, s, l, c;
+        t = 'translate'
+        s = this.userMarker.style["transform"].indexOf(t) + t.length + 1
+        l = this.userMarker.style["transform"].indexOf(')', s)
+        c = this.userMarker.style["transform"].substring(s, l)
+
+        let setValues = [Math.round(x)+'px', Math.round(y)+'px']
+
+        this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
+        
+        this.userMarker.style.setProperty('--dir', 0 - dir + 'deg');
+        this.userMarker.style.setProperty('--rot', 0 - rot + 'deg');
+    }
+
+    protected registerWebSocketEvent<K extends keyof WebSocketEventMap>(
+        communication: AppCommunication,
+        event: K,
+        handler: (event: WebSocketEventMap[K]) => void
+    ): void {
+        const boundHandler = handler.bind(this);
+        this.eventListeners.set(`websocket-${event}`, boundHandler as EventListener);
+        communication.addEventListener(event, boundHandler);
     }
 }
