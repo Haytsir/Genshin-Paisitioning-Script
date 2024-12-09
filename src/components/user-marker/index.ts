@@ -1,12 +1,15 @@
 import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
 import { persistentStore, sessionStore } from '@src/libs/store';
+import { unsafeWindow } from '$';
 
 @customElement('gps-user-marker')
 export class UserMarker extends HTMLElement {
     public userMarkerIcon: HTMLDivElement;
     public userViewAngle: HTMLDivElement;
     userMarker: any;
+    private unsubscribeSession: (() => void) | null = null;
+    private unsubscribePersistent: (() => void) | null = null;
     constructor() {
         super();
         this.style.visibility = 'hidden';
@@ -25,6 +28,12 @@ export class UserMarker extends HTMLElement {
             <div class="circle2"></div>
             <div class="circle3"></div>
         `;
+        const indicatorState = persistentStore.getState();
+        indicator.style.visibility = indicatorState.config.script.marker_indicator.show_user_indicator ? 'visible' : 'hidden';
+        indicator.style.setProperty('--size', indicatorState.config.script.marker_indicator.indicator_size.toString());
+        indicator.style.setProperty('--color', indicatorState.config.script.marker_indicator.indicator_color);
+        indicator.style.setProperty('--initial-opacity', indicatorState.config.script.marker_indicator.indicator_initial_opacity.toString());
+        indicator.style.setProperty('--animation-duration', indicatorState.config.script.marker_indicator.indicator_duration.toString()+'s');
         shadow.appendChild(this.userMarkerIcon);
         shadow.appendChild(this.userViewAngle);
         shadow.appendChild(indicator);
@@ -34,15 +43,50 @@ export class UserMarker extends HTMLElement {
         styleSheet.replaceSync(styles);
         shadow.adoptedStyleSheets = [styleSheet];
         
-        sessionStore.subscribe((state) => {
-            this.style.visibility = state.currentUser.isActive ? 'visible' : 'hidden';
+        this.unsubscribeSession = sessionStore.subscribe((state) => {
+            if (state.currentUser.isActive) {
+                this.style.visibility = 'visible';
+                if (unsafeWindow.objectViewer) {
+                    unsafeWindow.objectViewer.addEventListener('mousemove', this.mouseMoveEvent.bind(this));
+                }
+            } else {
+                this.style.visibility = 'hidden';
+                if (unsafeWindow.objectViewer) {
+                    unsafeWindow.objectViewer.removeEventListener('mousemove', this.mouseMoveEvent.bind(this));
+                }
+            }
         });
-        persistentStore.subscribe((state) => {
+        this.unsubscribePersistent = persistentStore.subscribe((state) => {
             indicator.style.visibility = state.config.script.marker_indicator.show_user_indicator ? 'visible' : 'hidden';
             indicator.style.setProperty('--size', state.config.script.marker_indicator.indicator_size.toString());
             indicator.style.setProperty('--color', state.config.script.marker_indicator.indicator_color);
             indicator.style.setProperty('--initial-opacity', state.config.script.marker_indicator.indicator_initial_opacity.toString());
             indicator.style.setProperty('--animation-duration', state.config.script.marker_indicator.indicator_duration.toString()+'s');
         });
+    }
+
+    private mouseMoveEvent(event: MouseEvent): void {
+        if (unsafeWindow.MAPS_ViewMobile == true) return;
+        const rect = this.userMarker.getBoundingClientRect();
+        let vecX = event.clientX - (rect.left + window.scrollX)
+        let vecY = event.clientY - (rect.top + window.scrollY)
+        let dist = Math.sqrt( vecX*vecX + vecY*vecY )
+        if(dist <= 17.5/unsafeWindow.MAPS_PointScale) {
+            this.userMarker.classList.add('hover')
+        } else {
+            this.userMarker.classList.remove('hover')
+        }
+    }
+
+    disconnectedCallback() {
+        // 컴포넌트가 제거될 때 구독 해제
+        if (this.unsubscribeSession) {
+            this.unsubscribeSession();
+            this.unsubscribeSession = null;
+        }
+        if (this.unsubscribePersistent) {
+            this.unsubscribePersistent();
+            this.unsubscribePersistent = null;
+        }
     }
 }

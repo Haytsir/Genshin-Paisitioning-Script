@@ -71,7 +71,10 @@ export class MapSite {
         });
 
         // WebSocket 이벤트 등록
-        this.communication.addEventListener('close', this.onSocketClose);
+        this.communication.addEventListener('close', (event) => {
+            console.log('연결이 끊어졌습니다:', event);
+            this.handleDisconnect();  // 연결 끊김 처리
+        });
         
         // 기존 DOM 이벤트 등록
         this.registerEventListener(this.actionMenu.actionConnect, 'click', 
@@ -142,6 +145,11 @@ export class MapSite {
         });
     }
 
+    private handleDisconnect(_event: CloseEvent | null = null): void {
+        this.onAppDeactivate();
+        this.toast.show('error', 'GPS', 'GPA와의 연결이 끊어졌습니다.');
+    }
+
     protected async safeExecute<T>(
         operation: () => Promise<T>,
         errorMessage: string
@@ -199,7 +207,7 @@ export class MapSite {
 
     onAppUpdateDone(_event: MessageEvent, data: UpdateData) {
         if(this.dialog.showing && this.dialog.progressing) {
-            this.dialog.close(null, `GPA ${data.targetVersion} 버전 업데이트 중...`);
+            this.dialog.close(null);
             this.dialog.hideProgress();
         }
         if(data.updated) {
@@ -227,12 +235,9 @@ export class MapSite {
     onLibUpdateDone(_event: MessageEvent, data: UpdateData) {
         console.debug("onLibUpdateDone")
         if(this.dialog.showing && this.dialog.progressing) {
-            this.dialog.close(null, `라이브러리 ${data.targetVersion} 버전 업데이트 중...`);
+            this.dialog.close(null);
             this.dialog.hideProgress();
         }
-    }
-    onSocketClose(_event: Event) {
-        this.onAppDeactivate();
     }
 
     onGetConfig(_event:MessageEvent, config: AppConfigData) {
@@ -371,4 +376,5 @@ export class MapSite {
         this.eventListeners.set(`websocket-${event}`, boundHandler as EventListener);
         communication.addEventListener(event, boundHandler);
     }
+
 }

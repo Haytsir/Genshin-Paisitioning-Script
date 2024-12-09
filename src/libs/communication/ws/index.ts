@@ -331,7 +331,18 @@ export class WebSocketManager implements CommunicationManager {
         handler: (event: WebSocketEventMap[K]) => void
     ): void {
         if (!this.socket) return;
-        this.socket.addEventListener(event, handler);
+        
+        // close 이벤트의 경우 내부 처리 후 핸들러 호출
+        if (event === 'close') {
+            const wrappedHandler = (e: CloseEvent) => {
+                this.socketState = SocketState.DISCONNECTED;
+                this.socket = null;
+                handler(e as WebSocketEventMap[K]);
+            };
+            this.socket.addEventListener(event, wrappedHandler as EventListener);
+        } else {
+            this.socket.addEventListener(event, handler);
+        }
     }
 
     public removeEventListener<K extends keyof WebSocketEventMap>(

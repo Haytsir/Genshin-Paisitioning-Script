@@ -22,11 +22,9 @@ export class ActionMenu extends HTMLElement {
     public actionConnect: ActionMenuItem;
     public actionConfig: ActionMenuItem;
     private unsubscribe: (() => void) | null = null;
-    private isActive: boolean;
 
     constructor() {
         super();
-        this.isActive = false;
         this.shadowRoot = this.attachShadow({ mode: 'open' });
         
         // 메뉴 아이템 설정
@@ -89,10 +87,9 @@ export class ActionMenu extends HTMLElement {
         // 디버그 모드 변경 감지
         this.unsubscribe = sessionStore.subscribe(() => {
             const { isActive } = sessionStore.getState().currentUser;
-            if(isActive !== this.isActive){
+            if(!isActive){
                 console.debug(`isActive changed: ${isActive}`);
                 this.updateVisibility(isActive);
-                this.isActive = isActive;
             }
         });
     }
