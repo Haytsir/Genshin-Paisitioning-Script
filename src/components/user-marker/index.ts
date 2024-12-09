@@ -28,7 +28,7 @@ export class UserMarker extends HTMLElement {
             <div class="circle3"></div>
         `;
         const indicatorState = persistentStore.getState();
-        indicator.style.visibility = indicatorState.config.script.marker_indicator.show_user_indicator ? 'visible' : 'hidden';
+        indicator.style.visibility = indicatorState.config.script.marker_indicator.show_user_indicator ? 'inherit' : 'hidden';
         indicator.style.setProperty('--size', indicatorState.config.script.marker_indicator.indicator_size.toString());
         indicator.style.setProperty('--color', indicatorState.config.script.marker_indicator.indicator_color);
         indicator.style.setProperty('--initial-opacity', indicatorState.config.script.marker_indicator.indicator_initial_opacity.toString());
