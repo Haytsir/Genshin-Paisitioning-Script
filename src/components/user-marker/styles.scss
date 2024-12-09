@@ -87,7 +87,7 @@
         }
     }
 }
-:host(:hover) {
+:host(.hover) {
     opacity: 0.5;
     z-index: inherit;
 }

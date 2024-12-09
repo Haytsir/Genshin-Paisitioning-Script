@@ -67,13 +67,8 @@ export class MapSite {
             onAppUpdateProgress: (e, d) => this.onAppUpdateProgress(e, d),
             onAppUpdateDone: (e, d) => this.onAppUpdateDone(e, d),
             onLibUpdateProgress: (e, d) => this.onLibUpdateProgress(e, d),
-            onLibUpdateDone: (e, d) => this.onLibUpdateDone(e, d)
-        });
-
-        // WebSocket 이벤트 등록
-        this.communication.addEventListener('close', (event) => {
-            console.log('연결이 끊어졌습니다:', event);
-            this.handleDisconnect();  // 연결 끊김 처리
+            onLibUpdateDone: (e, d) => this.onLibUpdateDone(e, d),
+            onClose: (e) => this.onCommunicationClose(e)
         });
         
         // 기존 DOM 이벤트 등록
@@ -245,6 +240,12 @@ export class MapSite {
         // Config을 얻었다는 것은 GPA가 연결되었다는 것, 활성화가 된 것으로 표시한다.
         this.onAppActivate(config)
     }
+
+    onCommunicationClose(event: CloseEvent) {
+        console.debug('onCommunicationClose', event);
+        this.handleDisconnect(event);
+    }
+
     onAppActivate(_config: AppConfigData | null = null) {
         this.isActive = true;
         sessionStore.setState({ 
@@ -266,7 +267,6 @@ export class MapSite {
         this.setPinned(true);
     }
     onAppDeactivate() {
-        this.onAppDeactivate();
         this.isActive = false;
         sessionStore.setState({ 
             currentUser: {

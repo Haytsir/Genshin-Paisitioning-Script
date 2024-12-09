@@ -109,21 +109,6 @@ export class IPCManager implements CommunicationManager {
     ): void {
         const boundHandler = handler.bind(this);
         this.eventListeners.set(`ipc-${event}`, boundHandler as EventListener);
-
-        // close 이벤트 처리
-        if (event === 'close') {
-            if ((window as TauriWindow).__TAURI__) {
-                if ((window as TauriWindow).__TAURI__) {
-                    (window as TauriWindow).__TAURI__?.event.listen('close', () => {
-                        handler(new Event('close') as CommunicationEventMap[K]);
-                    });
-                }
-            } else if ((window as any).electron) {
-                (window as any).electron.ipcRenderer.on('close', () => {
-                    handler(new Event('close') as CommunicationEventMap[K]);
-                });
-            }
-        }
     }
 
     public removeEventListener<K extends keyof CommunicationEventMap>(

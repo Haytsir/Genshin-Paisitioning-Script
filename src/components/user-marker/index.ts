@@ -7,7 +7,6 @@ import { unsafeWindow } from '$';
 export class UserMarker extends HTMLElement {
     public userMarkerIcon: HTMLDivElement;
     public userViewAngle: HTMLDivElement;
-    userMarker: any;
     private unsubscribeSession: (() => void) | null = null;
     private unsubscribePersistent: (() => void) | null = null;
     constructor() {
@@ -57,7 +56,7 @@ export class UserMarker extends HTMLElement {
             }
         });
         this.unsubscribePersistent = persistentStore.subscribe((state) => {
-            indicator.style.visibility = state.config.script.marker_indicator.show_user_indicator ? 'visible' : 'hidden';
+            indicator.style.visibility = state.config.script.marker_indicator.show_user_indicator ? 'inherit' : 'hidden';
             indicator.style.setProperty('--size', state.config.script.marker_indicator.indicator_size.toString());
             indicator.style.setProperty('--color', state.config.script.marker_indicator.indicator_color);
             indicator.style.setProperty('--initial-opacity', state.config.script.marker_indicator.indicator_initial_opacity.toString());
@@ -67,14 +66,17 @@ export class UserMarker extends HTMLElement {
 
     private mouseMoveEvent(event: MouseEvent): void {
         if (unsafeWindow.MAPS_ViewMobile == true) return;
-        const rect = this.userMarker.getBoundingClientRect();
-        let vecX = event.clientX - (rect.left + window.scrollX)
-        let vecY = event.clientY - (rect.top + window.scrollY)
-        let dist = Math.sqrt( vecX*vecX + vecY*vecY )
-        if(dist <= 17.5/unsafeWindow.MAPS_PointScale) {
-            this.userMarker.classList.add('hover')
+        const rect = this.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        let vecX = event.clientX - (centerX + window.scrollX)
+        let vecY = event.clientY - (centerY + window.scrollY)
+        let dist = Math.round(Math.sqrt( vecX*vecX + vecY*vecY ));
+        const radius = Math.ceil(rect.width/2);
+        if(dist <= radius) {
+            this.classList.add('hover')
         } else {
-            this.userMarker.classList.remove('hover')
+            this.classList.remove('hover')
         }
     }
 

@@ -57,7 +57,7 @@ export class WebSocketManager implements CommunicationManager {
         onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => {},
         onLibUpdateDone: (event: MessageEvent, data: UpdateData) => {},
         onLibInit: (event: MessageEvent, data: AppConfigData) => {},
-        onSocketClose: (event: CloseEvent) => {}
+        onClose: (event: CloseEvent) => {}
     };
 
     private constructor(config?: Partial<WebSocketConfig>) {
@@ -174,6 +174,7 @@ export class WebSocketManager implements CommunicationManager {
     }
 
     public close(): void {
+        this.socketState = SocketState.DISCONNECTED;
         if (this.socket) {
             // 이벤트 리스너 제거
             this.socket.removeEventListener('open', this.onWsOpen);
@@ -238,8 +239,9 @@ export class WebSocketManager implements CommunicationManager {
         console.debug('============= WebSocket Closed =============')
         console.debug(`code: ${event.code}`)
         console.debug(`reason: ${event.reason}`)
-        console.debug('============================================')
+        console.debug('============================================');
         this.close();
+        this.handlers.onClose(event);
     }
 
     private onConfigEvent(event: MessageEvent, data: AppConfigData): void {
@@ -331,18 +333,7 @@ export class WebSocketManager implements CommunicationManager {
         handler: (event: WebSocketEventMap[K]) => void
     ): void {
         if (!this.socket) return;
-        
-        // close 이벤트의 경우 내부 처리 후 핸들러 호출
-        if (event === 'close') {
-            const wrappedHandler = (e: CloseEvent) => {
-                this.socketState = SocketState.DISCONNECTED;
-                this.socket = null;
-                handler(e as WebSocketEventMap[K]);
-            };
-            this.socket.addEventListener(event, wrappedHandler as EventListener);
-        } else {
-            this.socket.addEventListener(event, handler);
-        }
+        this.socket.addEventListener(event, handler);
     }
 
     public removeEventListener<K extends keyof WebSocketEventMap>(

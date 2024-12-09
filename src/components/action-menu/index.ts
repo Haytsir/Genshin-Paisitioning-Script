@@ -87,10 +87,7 @@ export class ActionMenu extends HTMLElement {
         // 디버그 모드 변경 감지
         this.unsubscribe = sessionStore.subscribe(() => {
             const { isActive } = sessionStore.getState().currentUser;
-            if(!isActive){
-                console.debug(`isActive changed: ${isActive}`);
-                this.updateVisibility(isActive);
-            }
+            this.updateVisibility(isActive);
         });
     }
 

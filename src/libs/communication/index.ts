@@ -13,6 +13,7 @@ export interface AppCommunicationHandlers {
     onLibUpdateDone: (event: MessageEvent, data: UpdateData) => void;
     onLibInit: (event: MessageEvent, data: AppConfigData) => void;
     onTrackEvent: (event: MessageEvent, data: TrackData) => void;
+    onClose: (event: CloseEvent) => void;
 }
 
 export type CommunicationEventMap = WebSocketEventMap & IPCEventMap;
