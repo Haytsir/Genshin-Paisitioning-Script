@@ -1,6 +1,15 @@
-import {AppConfigData, getDefaultConfig} from "@src/libs/sites/config";
+import {ConfigData, getDefaultConfig} from "@src/libs/sites/config";
+import { deepMerge } from "../utils";
+declare const SCRIPT_VERSION: string;
 
-type Listener<T> = (state: T) => void;
+/**
+ * 상태 변경을 감지하는 리스너 타입
+ * @param newState - 읽기 전용 새 상태
+ * @param oldState - 읽기 전용 이전 상태
+ * 주의: 리스너 내에서 상태를 직접 수정하지 마세요.
+ * 상태 수정이 필요한 경우 setState를 사용하세요.
+ */
+type Listener<T> = (newState: Readonly<T>, oldState: Readonly<T>) => void;
 
 export class Store<T extends object> {
     private state: T;
@@ -28,20 +37,53 @@ export class Store<T extends object> {
         }
     }
 
+    /**
+     * 상태 수정을 위한 깊은 복사본을 반환합니다.
+     * setState를 통한 상태 업데이트 시 사용하세요.
+     * 단순 읽기만 필요한 경우 getStateReadonly()를 사용하세요.
+     */
     getState(): T {
-        return this.state;
+        return structuredClone(this.state);
     }
 
+    /**
+     * 상태를 읽기 전용으로 반환합니다.
+     * 주의: 중첩된 객체는 여전히 수정 가능합니다.
+     * 완벽한 불변성이 필요한 경우 getState()를 사용하세요.
+     */
+    getStateReadonly(): Readonly<T> {
+        return Object.freeze(this.state);
+    }
+
+    /**
+     * 상태를 업데이트합니다.
+     * 주의: newState 객체가 기존 상태의 참조를 포함하지 않도록 하세요.
+     * 필요한 경우 getState()를 통해 얻은 복사본을 사용하세요.
+     * 
+     * 예시:
+     * const stateForUpdate = store.getState();
+     * store.setState({
+     *   config: {
+     *     ...stateForUpdate.config,
+     *     app: newConfig
+     *   }
+     * });
+     */
     setState(newState: Partial<T>) {
-        this.state = { ...this.state, ...newState };
-        
+        const oldState = structuredClone(this.state);
+        this.state = deepMerge(this.state, newState);
         if (this.storageKey) {
             localStorage.setItem(this.storageKey, JSON.stringify(this.state));
         }
         
-        this.notify();
+        this.notify(this.state, oldState);
     }
 
+    /**
+     * 상태 변경을 구독합니다.
+     * listener는 oldState와 newState를 매개변수로 받습니다.
+     * oldState는 깊은 복사본이므로 안전하게 사용할 수 있습니다.
+     */
     subscribe(listener: Listener<T>) {
         this.listeners.add(listener);
         return () => {
@@ -49,10 +91,17 @@ export class Store<T extends object> {
         };
     }
 
-    private notify() {
-        this.listeners.forEach(listener => listener(this.state));
+    private notify(newState: T, oldState: T) {
+        this.listeners.forEach(listener => listener(
+            Object.freeze(newState),
+            Object.freeze(oldState)
+        ));
     }
 
+    /**
+     * 저장된 상태를 템플릿과 비교하여 유효성을 검사하고 정리합니다.
+     * 타입이 일치하지 않는 필드는 템플릿의 기본값으로 대체됩니다.
+     */
     private sanitizeState<S extends Record<string, any>, U extends Record<string, any>>(state: S, template: U): U {
         const sanitized = {} as U;
         
@@ -80,7 +129,7 @@ export class Store<T extends object> {
 
 // 영구 저장이 필요한 상태 타입
 export interface PersistentState {
-    config: AppConfigData;
+    config: Partial<ConfigData>;
 }
 
 // 세션 동안만 유지되는 상태 타입
@@ -95,6 +144,17 @@ interface SessionState {
     };
     tempSettings: {
         isPinned: boolean;
+    };
+    versionInfo: {
+        app?: {
+            version?: string;
+        },
+        lib?: {
+            version?: string;
+        },
+        script?: {
+            version?: string;
+        }
     };
 }
 
@@ -117,5 +177,10 @@ export const sessionStore = new Store<SessionState>({
     },
     tempSettings: {
         isPinned: true
+    },
+    versionInfo: {
+        script: {
+            version: SCRIPT_VERSION
+        }
     }
 }); 

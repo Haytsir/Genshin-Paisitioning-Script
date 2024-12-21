@@ -1,11 +1,7 @@
-export interface AppConfigData {
-    app: {
-        auto_app_update: boolean;
-        auto_lib_update: boolean;
-        capture_interval: number;
-        capture_delay_on_error: number;
-        use_bit_blt_capture_mode: boolean;
-    };
+import { CvatConfig, getCvatDefaultConfig } from "../cvat";
+
+export interface ConfigData {
+    app: CvatConfig;
     script: {
         marker_indicator: {
             show_user_indicator: boolean;
@@ -17,15 +13,9 @@ export interface AppConfigData {
     };
 }
 
-export function getDefaultConfig(): AppConfigData {
+export function getDefaultConfig(): ConfigData {
     return {
-        app: {
-            auto_app_update: true,
-            auto_lib_update: true,
-            capture_interval: 250,
-            capture_delay_on_error: 1000,
-            use_bit_blt_capture_mode: false
-        },
+        app: getCvatDefaultConfig(),
         script: {
             marker_indicator: {
                 show_user_indicator: true,

@@ -43,6 +43,41 @@ export function formatSize(size: number): string {
     return (size / 1024 / 1024 / 1024 / 1024).toFixed(2) + 'TB';
 }
 
+export function deepMerge<S>(target: S, source: Partial<S>): S {
+    const result = { ...target };
+    
+    for (const key in source) {
+        if (typeof source[key] === 'object' && source[key] !== null &&
+            typeof result[key] === 'object' && result[key] !== null) {
+            result[key] = deepMerge(
+                result[key] as any,
+                source[key] as any
+            );
+        } else if (source[key] !== undefined) {
+            result[key] = source[key];
+        }
+    }
+    
+    return result;
+}
+
+export function deepEqual(obj1: any, obj2: any): boolean {
+    if (obj1 === obj2) return true;
+    if (typeof obj1 !== 'object' || obj1 === null ||
+        typeof obj2 !== 'object' || obj2 === null) {
+        return false;
+    }
+    const keys1 = Object.keys(obj1);
+    const keys2 = Object.keys(obj2);
+    if (keys1.length !== keys2.length) return false;
+    for (const key of keys1) {
+        if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 export function customElement(name: string) {
     return (constructor: CustomElementConstructor) => {
         customElements.define(name, constructor);

@@ -1,8 +1,7 @@
 import { MapSite } from "..";
-import { AppConfigData } from "@src/libs/sites/config";
 import { sessionStore } from "@src/libs/store";
 import { unsafeWindow } from "\$";
-import { TrackData } from "@src/libs/cvat";
+import { CvatConfig, TrackData } from "@src/libs/cvat";
 import { overrideFuntions } from "./overrides";
 import './style.scss';
 
@@ -46,7 +45,6 @@ export class GamedotMaps extends MapSite {
         super();
 
         this.communication.setHandlers({
-            onLibInit: (e, d) => this.onLibInit(e, d),
             onTrackEvent: (e, d) => this.onTrackEvent(e, d)
         });
 
@@ -115,7 +113,7 @@ export class GamedotMaps extends MapSite {
     onTrackEvent(_event: MessageEvent, posobj: TrackData) {
         let { m, x, y, r: rot, a: dir } = posobj;
         super.onTrackEvent(null, posobj);
-        const { debug } = sessionStore.getState().currentUser;
+        const { debug } = sessionStore.getStateReadonly().currentUser;
         if(debug) {
             console.debug("gamedot:onTrackEvent", posobj);
         }
@@ -197,7 +195,7 @@ export class GamedotMaps extends MapSite {
                 this.dialog.alert('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
             } else {
                 this.userMarker.classList.remove('hide')
-                this.dialog.close(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
+                this.dialog.close(null);
             }
         }
     }
@@ -210,7 +208,7 @@ export class GamedotMaps extends MapSite {
                 this.dialog.alert('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
             } else {
                 this.userMarker.classList.remove('hide')
-                this.dialog.close(null, '플레이어의 현재 위치와 활성화된 지도가 다릅니다.');
+                this.dialog.close(null);
             }
             if(this.objectTargetFilterBtn instanceof HTMLDivElement)
                 this.objectTargetFilterBtn.classList.remove('current-map')
@@ -232,7 +230,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchDown(e: MouseEvent | TouchEvent) {
-        if (!sessionStore.getState().currentUser.isActive) return;
+        if (!sessionStore.getStateReadonly().currentUser.isActive) return;
         this.tmpDragging = Date.now();
         if(e instanceof MouseEvent)
             this.tmpMousePos = [e.clientX, e.clientY];
@@ -241,7 +239,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchMove(e: MouseEvent | TouchEvent) {
-        if (!sessionStore.getState().currentUser.isActive) return;
+        if (!sessionStore.getStateReadonly().currentUser.isActive) return;
 
         if (this.tmpDragging > 0 && Date.now() - this.tmpDragging > 100) {
             let nowMousePos: [number, number] = [0, 0];
@@ -255,11 +253,7 @@ export class GamedotMaps extends MapSite {
     }
 
     onMouseTouchUp(_e: MouseEvent | TouchEvent) {
-        if (!sessionStore.getState().currentUser.isActive) return;
+        if (!sessionStore.getStateReadonly().currentUser.isActive) return;
             this.tmpDragging = 0;
-    }
-
-    onLibInit(_event: MessageEvent, _data: AppConfigData){
-        
     }
 }

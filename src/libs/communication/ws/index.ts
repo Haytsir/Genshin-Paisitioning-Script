@@ -1,6 +1,5 @@
-import { TrackData, UpdateData } from "../../cvat";
-import { AppConfigData } from "../../sites/config";
-import { CommunicationManager, AppCommunicationHandlers } from "../index";
+import { CvatConfig, TrackData, UpdateData } from "../../cvat";
+import { CommunicationManager, AppCommunicationHandlers, CommunicationRxEventHandlers } from "../index";
 import { fetchWithTimeout, isMobileBrowser } from "../../utils";
 import { sessionStore } from "../../store";
 
@@ -11,10 +10,6 @@ interface WebSocketConfig {
     maxRetries: number;
     retryDelay: number;
 }
-
-// 이벤트 핸들러 타입 정의
-type WebSocketEventHandler<T = any> = (event: MessageEvent, data: T) => void;
-type WebSocketEventHandlers = Record<string, WebSocketEventHandler>;
 
 enum SocketState {
     DISCONNECTED,
@@ -43,22 +38,12 @@ export class WebSocketManager implements CommunicationManager {
     private static _instance: WebSocketManager;
     private socket: WebSocket | null = null;
     private socketState: SocketState = SocketState.DISCONNECTED;
-    private readonly eventHandlers: WebSocketEventHandlers;
     private readonly config: WebSocketConfig;
     private isDestroyed = false;
 
     // 이벤트 핸들러들을 readonly로 선언
-    public readonly handlers = {
-        onSocketConnectPost: (event: Event) => {},
-        onTrackEvent: (event: MessageEvent, data: TrackData) => {},
-        onGetConfig: (event: MessageEvent, data: AppConfigData) => {},
-        onAppUpdateProgress: (event: MessageEvent, data: UpdateData) => {},
-        onAppUpdateDone: (event: MessageEvent, data: UpdateData) => {},
-        onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => {},
-        onLibUpdateDone: (event: MessageEvent, data: UpdateData) => {},
-        onLibInit: (event: MessageEvent, data: AppConfigData) => {},
-        onClose: (event: CloseEvent) => {}
-    };
+    public readonly rxEventHandlers: Partial<CommunicationRxEventHandlers> = {};
+    public readonly handlers: Partial<AppCommunicationHandlers> = {};
 
     private constructor(config?: Partial<WebSocketConfig>) {
         this.config = {
@@ -69,10 +54,11 @@ export class WebSocketManager implements CommunicationManager {
             ...config
         };
 
-        this.eventHandlers = {
+        this.rxEventHandlers = {
             track: this.onTrackEvent.bind(this),
             config: this.onConfigEvent.bind(this),
-            update: this.onUpdateEvent.bind(this)
+            update: this.onUpdateEvent.bind(this),
+            doneInit: this.onLibInit.bind(this)
         };
     }
 
@@ -111,7 +97,7 @@ export class WebSocketManager implements CommunicationManager {
     }
 
     private async registerSocket(): Promise<WebSocket | null> {
-        const debug = sessionStore.getState().currentUser.debug;
+        const {debug} = sessionStore.getStateReadonly().currentUser;
         
         const res = await fetchWithTimeout(`${this.config.baseUrl}/register`, {
             method: 'POST',
@@ -192,8 +178,14 @@ export class WebSocketManager implements CommunicationManager {
                this.socket?.readyState === WebSocket.OPEN;
     }
 
+    public send(event: string, data: any): void {
+        if(this.socket) {
+            this.socket.send(JSON.stringify({ event: event, data: data }));
+        }
+    }
+
     private onWsMessage(event: MessageEvent): void {
-        const debug = sessionStore.getState().currentUser.debug;
+        const {debug} = sessionStore.getStateReadonly().currentUser;
         try {
             const msg = JSON.parse(event.data) as WebSocketMessage;
             if(debug && msg.event !== 'track'){
@@ -204,80 +196,95 @@ export class WebSocketManager implements CommunicationManager {
                 console.error(msg);
                 throw new Error('잘못된 메시지 형식');
             }
-            const handler = this.eventHandlers[msg.event];
+            const handler = this.rxEventHandlers[msg.event as keyof CommunicationRxEventHandlers];
             if (handler) {
-                handler.call(this, event, this.preprocessMessageData(msg));
+                (handler as Function).call(this, event, this.preprocessMessageData(event, msg));
             }
         } catch (e) {
             this.handleMessageError(e);
         }
     }
 
-    private preprocessMessageData(msg: any): any {
-        if (msg?.event === 'track') {
-            return {
+    private preprocessMessageData(event: MessageEvent, msg: any): any {
+        switch(msg?.event){
+            case 'track':
+                return {
                 ...msg.data,
-                err: msg.data.err ? JSON.parse(msg.data.err) : null
-            };
+                    err: msg.data.err ? JSON.parse(msg.data.err) : null
+                };
+            case 'init':
+                if (this.handlers.onLibInit) {
+                    this.handlers.onLibInit(event, msg.data);
+                }
+                break;
+            default:
+                return msg.data;
         }
-        return msg.data;
     }
 
     private onWsOpen(event: Event): void {
-        if(event?.currentTarget instanceof WebSocket)
-            event.currentTarget.send(JSON.stringify({ event: 'checkAppUpdate' }));
-        this.handlers.onSocketConnectPost(event);
+        if (this.handlers.onConnectPost) {
+            this.handlers.onConnectPost(event);
+        }
     }
     
     private onWsError(event: Event): void {
-        console.debug('============= WebSocket Error =============')
-        console.debug(`error: ${event}`)
-        console.debug('===========================================')
+        const {debug} = sessionStore.getStateReadonly().currentUser;
+        if(debug) {
+            console.debug('============= WebSocket Error =============')
+            console.debug(`error: ${event}`)
+            console.debug('===========================================')
+        }
     }
     
     private onWsClose(event: CloseEvent): void {
-        console.debug('============= WebSocket Closed =============')
-        console.debug(`code: ${event.code}`)
-        console.debug(`reason: ${event.reason}`)
-        console.debug('============================================');
+        const {debug} = sessionStore.getStateReadonly().currentUser;
+        if(debug) {
+            console.debug('============= WebSocket Closed =============')
+            console.debug(`code: ${event.code}`)
+            console.debug(`reason: ${event.reason}`)
+            console.debug('============================================');
+        }
         this.close();
-        this.handlers.onClose(event);
+        if (this.handlers.onClose) {
+            this.handlers.onClose(event);
+        }
     }
 
-    private onConfigEvent(event: MessageEvent, data: AppConfigData): void {
-        this.handlers.onGetConfig(event, data);
-        if(event?.currentTarget instanceof WebSocket){
+    private onConfigEvent(event: MessageEvent, data: CvatConfig): void {
+        if (this.handlers.onGetConfig) {
+            this.handlers.onGetConfig(event, data);
+        }
+    }
+
+    private onLibInit(event: MessageEvent, data: null): void {
+        if (this.handlers.onLibInit) {
             this.handlers.onLibInit(event, data);
-            event.currentTarget.send(JSON.stringify({ event: 'init' }));
         }
     }
     
     private onUpdateEvent(event: MessageEvent, data: UpdateData): void {
         if(data.done) {
             if(data.targetType == 'app') {
-                if(event?.currentTarget instanceof WebSocket){
-                    event.currentTarget.send(JSON.stringify({ event: 'checkLibUpdate' }));
-                }
                 // 앱이 업데이트 되면 앱 자체가 재실행되므로, 모든 과정을 초기화 시키고 다시 시도해야 함.
-                this.handlers.onAppUpdateDone(event, data);
-            } else if(data.targetType == 'cvat') {
-                if(event?.currentTarget instanceof WebSocket){
-                    event.currentTarget.send(JSON.stringify({ event: 'getConfig' }));
+                if (this.handlers.onAppUpdateDone) {
+                    this.handlers.onAppUpdateDone(event, data);
                 }
-                this.handlers.onLibUpdateDone(event, data);
+            } else if(data.targetType == 'cvat') {
+                if (this.handlers.onLibUpdateDone) {
+                    this.handlers.onLibUpdateDone(event, data);
+                }
             }
         } else {
             if(data.targetType == 'app') {
-                this.handlers.onAppUpdateProgress(event, data);
+                if (this.handlers.onAppUpdateProgress) {
+                    this.handlers.onAppUpdateProgress(event, data);
+                }
             } else if(data.targetType == 'cvat') {
-                this.handlers.onLibUpdateProgress(event, data);
+                if (this.handlers.onLibUpdateProgress) {
+                    this.handlers.onLibUpdateProgress(event, data);
+                }
             }
-        }
-    }
-
-    sendConfig(config: AppConfigData): void {
-        if(this.socket) {
-            this.socket.send(JSON.stringify({ event: 'setConfig', data: config }));
         }
     }
 
@@ -325,7 +332,9 @@ export class WebSocketManager implements CommunicationManager {
     }
 
     private onTrackEvent(event: MessageEvent, data: TrackData): void {
-        this.handlers.onTrackEvent(event, data);
+        if (this.handlers.onTrackEvent) {
+            this.handlers.onTrackEvent(event, data);
+        }
     }
 
     public addEventListener<K extends keyof WebSocketEventMap>(

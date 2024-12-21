@@ -85,8 +85,8 @@ export class ActionMenu extends HTMLElement {
         this.classList.add('gps-action');
         this.updateVisibility(this.getAttribute('active') === 'true');
         // 디버그 모드 변경 감지
-        this.unsubscribe = sessionStore.subscribe(() => {
-            const { isActive } = sessionStore.getState().currentUser;
+        this.unsubscribe = sessionStore.subscribe((newState) => {
+            const { isActive } = newState.currentUser;
             this.updateVisibility(isActive);
         });
     }

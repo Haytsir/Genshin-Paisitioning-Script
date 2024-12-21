@@ -1,13 +1,12 @@
-import { PersistentState, persistentStore, sessionStore } from '../store';
+import { persistentStore, sessionStore } from '../store';
 import { ActionMenu } from "../../components/action-menu";
 import { Dialog } from "../../components/dialog";
 import { UserMarker } from "../../components/user-marker";
-import { TrackData, UpdateData, loadCvat } from "../cvat";
-import { AppConfigData } from "./config";
+import { CvatConfig, TrackData, UpdateData, loadCvat } from "../cvat";
 import { AppCommunication } from "../communication";
 import { ConfigModal } from "@src/components/config-modal";
 import { Toast } from "../../components/toast";
-import { extractKeyFromList } from '../utils';
+import { deepEqual, extractKeyFromList } from '../utils';
 
 interface ErrorItem {
     message: string;
@@ -20,7 +19,6 @@ export class MapSite {
     public dialog: Dialog;
     public actionMenu: ActionMenu;
     public userMarker: UserMarker;
-    public config!: AppConfigData;
     public siteHost: string;
     public isPinned: boolean;
     public currentMap: number;
@@ -63,11 +61,13 @@ export class MapSite {
 
         // WebSocket 핸들러 설정
         this.communication.setHandlers({
+            onConnectPost: (e) => this.onCommunicationConnectPost(e),
             onGetConfig: (e, d) => this.onGetConfig(e, d),
             onAppUpdateProgress: (e, d) => this.onAppUpdateProgress(e, d),
             onAppUpdateDone: (e, d) => this.onAppUpdateDone(e, d),
             onLibUpdateProgress: (e, d) => this.onLibUpdateProgress(e, d),
             onLibUpdateDone: (e, d) => this.onLibUpdateDone(e, d),
+            onLibInit: (e, d) => this.onLibInit(e, d),
             onClose: (e) => this.onCommunicationClose(e)
         });
         
@@ -91,14 +91,14 @@ export class MapSite {
         this.objectPanelMenu = this.getDOMElement<HTMLDivElement>('#mapsMenu');
         this.objectTargetFilterBtn = this.getDOMElement<HTMLDivElement>('#mapsAreaFilter div[data-value="unset"]');
 
-        persistentStore.subscribe((state: PersistentState) => {
-            if(!Object.is(this.config, state.config)) {
-                const {debug} = sessionStore.getState().currentUser;
-                if(debug) {
-                    console.debug('설정 변경됨', state.config);
-                }
-                this.config = state.config;
-                this.communication.sendConfig(this.config);
+        persistentStore.subscribe((newState, oldState) => {
+            const {debug} = sessionStore.getStateReadonly().currentUser;
+            if(deepEqual(newState.config.app, oldState.config.app)) return;
+            if(debug) {
+                console.debug('설정 변경됨', newState.config);
+            }
+            if(newState.config.app) {
+                this.communication.sendConfig(newState.config.app);
             }
         });
     }
@@ -141,7 +141,7 @@ export class MapSite {
     }
 
     private handleDisconnect(_event: CloseEvent | null = null): void {
-        this.onAppDeactivate();
+        this.deactivateApp();
         this.toast.show('error', 'GPS', 'GPA와의 연결이 끊어졌습니다.');
     }
 
@@ -174,7 +174,7 @@ export class MapSite {
         this.communication.connect().then(connected => {
             if (!connected) {
                 this.toast.show('error', 'GPS', 'GPA에 연결할 수 없습니다. 앱이 켜져있는지 확인해주세요.');
-                this.onAppDeactivate();
+                this.deactivateApp();
             }
         });
     }
@@ -187,6 +187,10 @@ export class MapSite {
         event.preventDefault();
         event.stopPropagation();
         // $map.control.debugCapture();
+    }
+    onCommunicationConnectPost(_event: Event) {
+        this.communication.send('getConfig', null);
+        this.communication.send('checkAppUpdate', { force: false });
     }
     onStartAppUpdate(_event: MessageEvent, data: UpdateData) {
         this.dialog.alert('GPS', `GPA ${data.targetVersion} 버전 업데이트 중...`, 0, false);
@@ -209,8 +213,26 @@ export class MapSite {
             // 모든 과정을 초기화하고 다시 시작.
             this.dialog.alert('GPS', 'GPA가 업데이트 되었습니다. 다시 시작합니다. 진행되지 않으면, 페이지를 새로고침 해주세요.');
             this.communication.close();
-            this.onAppDeactivate();
-            this.loadPlugin(sessionStore.getState().currentUser.debug);
+            this.deactivateApp();
+            this.loadPlugin(sessionStore.getStateReadonly().currentUser.debug);
+        }
+        if(data.done) {
+            sessionStore.setState({
+                versionInfo: {
+                    app: {
+                        version: data.currentVersion
+                    }
+                }
+            });
+            const {debug} = sessionStore.getStateReadonly().currentUser;
+            if(debug) {
+                console.debug(`GPA 버전: ${sessionStore.getStateReadonly().versionInfo.app?.version}`);
+            }
+            if(sessionStore.getStateReadonly().versionInfo.lib?.version) {
+                this.activateApp();
+            }else{
+                this.communication.send('checkLibUpdate', { force: false });
+            }
         }
     }
 
@@ -220,7 +242,10 @@ export class MapSite {
     }
 
     onLibUpdateProgress(event: MessageEvent, data: UpdateData) {
-        console.debug("onLibUpdateProgress")
+        const {debug} = sessionStore.getStateReadonly().currentUser;
+        if(debug) {
+            console.debug("onLibUpdateProgress")
+        }
         if(!this.dialog.progressing) {
             this.onStartLibUpdate(event, data)
         }
@@ -228,25 +253,59 @@ export class MapSite {
     }
 
     onLibUpdateDone(_event: MessageEvent, data: UpdateData) {
-        console.debug("onLibUpdateDone")
+        const {debug} = sessionStore.getStateReadonly().currentUser;
+        if(debug) {
+            console.debug("onLibUpdateDone")
+        }
         if(this.dialog.showing && this.dialog.progressing) {
             this.dialog.close(null);
             this.dialog.hideProgress();
         }
+
+        if(data.done) {
+            sessionStore.setState({
+                versionInfo: {
+                    lib: {
+                        version: data.displayVersionName
+                    }
+                }
+            });
+            if(debug) {
+                console.debug(`라이브러리 버전: ${sessionStore.getStateReadonly().versionInfo.lib?.version}`);
+            }
+            if(sessionStore.getStateReadonly().versionInfo.app?.version) {
+                this.activateApp();
+            }else{
+                this.communication.send('checkLibUpdate', { force: false });
+            }
+        }
     }
 
-    onGetConfig(_event:MessageEvent, config: AppConfigData) {
-        this.config = persistentStore.getState().config;
-        // Config을 얻었다는 것은 GPA가 연결되었다는 것, 활성화가 된 것으로 표시한다.
-        this.onAppActivate(config)
+    onGetConfig(_event:MessageEvent, newConfig: CvatConfig) {
+        const appConfig = persistentStore.getStateReadonly().config.app;
+        if(deepEqual(appConfig, newConfig)) return;
+
+        persistentStore.setState({
+            config: {
+                app: newConfig
+            }
+        });
     }
 
     onCommunicationClose(event: CloseEvent) {
-        console.debug('onCommunicationClose', event);
+        const {debug} = sessionStore.getStateReadonly().currentUser;
+        if(debug) {
+            console.debug('onCommunicationClose', event);
+        }
         this.handleDisconnect(event);
     }
 
-    onAppActivate(_config: AppConfigData | null = null) {
+    activateApp() {
+        if(this.isActive) return;
+        this.communication.send('init', null);
+    }
+
+    onAppActivate() {
         this.isActive = true;
         sessionStore.setState({ 
             currentUser: {
@@ -266,7 +325,7 @@ export class MapSite {
         this.actionMenu.actionConfig.addEventListener('click', (e) => this.configModal.showModal(), {signal: this._activeAbortSignal});
         this.setPinned(true);
     }
-    onAppDeactivate() {
+    deactivateApp() {
         this.isActive = false;
         sessionStore.setState({ 
             currentUser: {
@@ -328,7 +387,7 @@ export class MapSite {
     onTrackEvent(event: MessageEvent|null, data: TrackData) {
         if (!this.isActive) return;
         if(event !== null) { // null이라면 MapSite를 상속한 클래스에서 처리하는 것이다.
-            const { debug } = sessionStore.getState().currentUser;
+            const { debug } = sessionStore.getStateReadonly().currentUser;
             if(debug) {
                 console.debug("onTrackEvent", data);
             }
@@ -377,4 +436,7 @@ export class MapSite {
         communication.addEventListener(event, boundHandler);
     }
 
+    onLibInit(event: MessageEvent, data: null) {
+        this.onAppActivate();
+    }
 }

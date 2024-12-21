@@ -1,6 +1,6 @@
 import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
-import { AppConfigData, getDefaultConfig } from "@src/libs/sites/config";
+import { ConfigData, getDefaultConfig } from "@src/libs/sites/config";
 import { persistentStore } from '@src/libs/store';
 
 // 설정 경로를 위한 타입 정의
@@ -12,7 +12,7 @@ type PathsToStringProps<T> = T extends object
     }[keyof T]
     : never;
 
-type ConfigPath = PathsToStringProps<AppConfigData>;
+type ConfigPath = PathsToStringProps<ConfigData>;
 
 interface ConfigField {
     label: string;
@@ -106,7 +106,7 @@ export class ConfigModal extends HTMLElement {
         inputs: Map<string, HTMLInputElement>;
         tabs: Map<string, HTMLDivElement>;
     };
-    private tempConfig: AppConfigData;  // 임시 설정 저장용
+    private tempConfig: ConfigData;  // 임시 설정 저장용
 
     constructor() {
         super();
@@ -116,7 +116,7 @@ export class ConfigModal extends HTMLElement {
         styleSheet.replaceSync(styles);
         shadow.adoptedStyleSheets = [styleSheet];
 
-        this.tempConfig = { ...persistentStore.getState().config };
+        this.tempConfig = persistentStore.getState().config as ConfigData;
 
         this.elements = {
             modal: this.createModal(),
@@ -294,7 +294,7 @@ export class ConfigModal extends HTMLElement {
     }
 
     public showModal(): void {
-        this.tempConfig = { ...persistentStore.getState().config };
+        this.tempConfig = persistentStore.getState().config as ConfigData;
         
         this.elements.inputs.forEach((input, key) => {
             const field = CONFIG_FIELDS[key];
@@ -314,8 +314,7 @@ export class ConfigModal extends HTMLElement {
 
     public hideModal(): void {
         this.elements.modal.classList.remove('show');
-        // 모달이 닫힐 때 임시 설정 초기화
-        this.tempConfig = { ...persistentStore.getState().config };
+        this.tempConfig = persistentStore.getState().config as ConfigData;
     }
 
     private switchTab(tabId: string): void {

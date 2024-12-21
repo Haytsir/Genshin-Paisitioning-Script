@@ -63,7 +63,8 @@ export default defineConfig({
     terserOptions: {}
   },
   define: {
-    __IPC_ENABLED__: false
+    __IPC_ENABLED__: false,
+    SCRIPT_VERSION: `"${packageInfo.version}"`
   },
   esbuild: {
     target: 'esnext'

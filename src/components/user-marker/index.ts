@@ -27,12 +27,12 @@ export class UserMarker extends HTMLElement {
             <div class="circle2"></div>
             <div class="circle3"></div>
         `;
-        const indicatorState = persistentStore.getState();
-        indicator.style.visibility = indicatorState.config.script.marker_indicator.show_user_indicator ? 'inherit' : 'hidden';
-        indicator.style.setProperty('--size', indicatorState.config.script.marker_indicator.indicator_size.toString());
-        indicator.style.setProperty('--color', indicatorState.config.script.marker_indicator.indicator_color);
-        indicator.style.setProperty('--initial-opacity', indicatorState.config.script.marker_indicator.indicator_initial_opacity.toString());
-        indicator.style.setProperty('--animation-duration', indicatorState.config.script.marker_indicator.indicator_duration.toString()+'s');
+        const indicatorState = persistentStore.getStateReadonly();
+        indicator.style.visibility = indicatorState.config?.script?.marker_indicator?.show_user_indicator ? 'inherit' : 'hidden';
+        indicator.style.setProperty('--size', indicatorState.config?.script?.marker_indicator?.indicator_size?.toString() ?? '0');
+        indicator.style.setProperty('--color', indicatorState.config?.script?.marker_indicator?.indicator_color ?? '');
+        indicator.style.setProperty('--initial-opacity', indicatorState.config?.script?.marker_indicator?.indicator_initial_opacity?.toString() ?? '0');
+        indicator.style.setProperty('--animation-duration', (indicatorState.config?.script?.marker_indicator?.indicator_duration?.toString() ?? '0') + 's');
         shadow.appendChild(this.userMarkerIcon);
         shadow.appendChild(this.userViewAngle);
         shadow.appendChild(indicator);
@@ -42,8 +42,8 @@ export class UserMarker extends HTMLElement {
         styleSheet.replaceSync(styles);
         shadow.adoptedStyleSheets = [styleSheet];
         
-        this.unsubscribeSession = sessionStore.subscribe((state) => {
-            if (state.currentUser.isActive) {
+        this.unsubscribeSession = sessionStore.subscribe((newState) => {
+            if (newState.currentUser.isActive) {
                 this.style.visibility = 'visible';
                 if (unsafeWindow.objectViewer) {
                     unsafeWindow.objectViewer.addEventListener('mousemove', this.mouseMoveEvent.bind(this));
@@ -55,12 +55,14 @@ export class UserMarker extends HTMLElement {
                 }
             }
         });
-        this.unsubscribePersistent = persistentStore.subscribe((state) => {
-            indicator.style.visibility = state.config.script.marker_indicator.show_user_indicator ? 'inherit' : 'hidden';
-            indicator.style.setProperty('--size', state.config.script.marker_indicator.indicator_size.toString());
-            indicator.style.setProperty('--color', state.config.script.marker_indicator.indicator_color);
-            indicator.style.setProperty('--initial-opacity', state.config.script.marker_indicator.indicator_initial_opacity.toString());
-            indicator.style.setProperty('--animation-duration', state.config.script.marker_indicator.indicator_duration.toString()+'s');
+        this.unsubscribePersistent = persistentStore.subscribe((newState) => {
+            if (newState.config?.script?.marker_indicator) {
+                indicator.style.visibility = newState.config.script.marker_indicator.show_user_indicator ? 'inherit' : 'hidden';
+                indicator.style.setProperty('--size', newState.config.script.marker_indicator.indicator_size.toString());
+                indicator.style.setProperty('--color', newState.config.script.marker_indicator.indicator_color);
+                indicator.style.setProperty('--initial-opacity', newState.config.script.marker_indicator.indicator_initial_opacity.toString());
+                indicator.style.setProperty('--animation-duration', newState.config.script.marker_indicator.indicator_duration.toString()+'s');
+            }
         });
     }
 

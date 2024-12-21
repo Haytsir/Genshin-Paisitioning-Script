@@ -1,17 +1,27 @@
 import { WebSocketManager } from "./ws";
 import { IPCManager, IPCEventMap } from "./ipc";
-import { AppConfigData } from "../sites/config";
-import { TrackData, UpdateData } from "../cvat";
+import { CvatConfig, TrackData, UpdateData } from "../cvat";
 import { isElectron, isTauri } from "../utils";
+declare const __IPC_ENABLED__: boolean;
 
+// Communication에서 최초 이벤트 수신 시 호출되는 함수,
+// 이벤트 이름을 키로 갖고, 키에 해당하는 이벤트 수신 시 대응하는 함수를 실행한다.
+export interface CommunicationRxEventHandlers {
+    track: (event: MessageEvent, data: TrackData) => void;
+    config: (event: MessageEvent, data: CvatConfig) => void;
+    update: (event: MessageEvent, data: UpdateData) => void;
+    doneInit: (event: MessageEvent, data: null) => void;
+}
 
+// Communication에서 이벤트 처리 중 다양한 상황에 대응하는 함수를 정의한다.
 export interface AppCommunicationHandlers {
-    onGetConfig: (event: MessageEvent, data: AppConfigData) => void;
+    onConnectPost: (event: Event) => void;
+    onGetConfig: (event: MessageEvent, data: CvatConfig) => void;
     onAppUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
     onAppUpdateDone: (event: MessageEvent, data: UpdateData) => void;
     onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
     onLibUpdateDone: (event: MessageEvent, data: UpdateData) => void;
-    onLibInit: (event: MessageEvent, data: AppConfigData) => void;
+    onLibInit: (event: MessageEvent, data: null) => void;
     onTrackEvent: (event: MessageEvent, data: TrackData) => void;
     onClose: (event: CloseEvent) => void;
 }
@@ -22,7 +32,7 @@ export interface CommunicationManager {
     connect(): Promise<boolean>;
     isConnected(): boolean;
     close(): void;
-    sendConfig(config: AppConfigData): void;
+    send(event: string, data: any): void;
     addEventListener<K extends keyof CommunicationEventMap>(event: K, handler: (event: CommunicationEventMap[K]) => void): void;
     removeEventListener<K extends keyof CommunicationEventMap>(event: K, handler: (event: CommunicationEventMap[K]) => void): void;
     setHandlers(handlers: Partial<AppCommunicationHandlers>): void;
@@ -47,8 +57,12 @@ export class AppCommunication {
         return this.communication.isConnected();
     }
 
-    public sendConfig(config: AppConfigData): void {
-        this.communication.sendConfig(config);
+    public send(event: string, data: any): void {
+        this.communication.send(event, data);
+    }
+
+    public sendConfig(config: CvatConfig): void {
+        this.communication.send('setConfig', config);
     }
 
     public close(): void {

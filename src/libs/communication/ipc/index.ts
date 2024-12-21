@@ -1,5 +1,4 @@
-import { AppConfigData } from "../../sites/config";
-import { UpdateData } from "../../cvat";
+import { CvatConfig, UpdateData } from "../../cvat";
 import { AppCommunicationHandlers, CommunicationManager, CommunicationEventMap } from "..";
 
 interface TauriWindow extends Window {
@@ -18,7 +17,8 @@ export interface IPCEventMap {
 }
 
 export interface IPCHandlers {
-    onGetConfig: (event: MessageEvent, data: AppConfigData) => void;
+    onConnectPost: (event: null) => void;
+    onGetConfig: (event: MessageEvent, data: CvatConfig) => void;
     onAppUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
     onAppUpdateDone: (event: MessageEvent, data: UpdateData) => void;
     onLibUpdateProgress: (event: MessageEvent, data: UpdateData) => void;
@@ -71,6 +71,9 @@ export class IPCManager implements CommunicationManager {
     }
 
     public async connect(): Promise<boolean> {
+        if (this.handlers.onConnectPost) {
+            this.handlers.onConnectPost(null);
+        }
         return true;  // IPC는 항상 연결되어 있음
     }
 
@@ -86,12 +89,12 @@ export class IPCManager implements CommunicationManager {
         Object.assign(this.handlers, handlers);
     }
 
-    public sendConfig(config: AppConfigData): void {
+    public send(event: string, data: any): void {
         const tauri = (window as TauriWindow).__TAURI__;
         if (tauri?.invoke) {
-            tauri.invoke('send_config', { config });
+            tauri.invoke(event, { data });
         } else if ((window as any).electron) {
-            (window as any).electron.ipcRenderer.send('send_config', config);
+            (window as any).electron.ipcRenderer.send(event, data);
         }
     }
 
