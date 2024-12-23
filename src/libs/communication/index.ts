@@ -2,6 +2,7 @@ import { WebSocketManager } from "./ws";
 import { IPCManager, IPCEventMap } from "./ipc";
 import { CvatConfig, TrackData, UpdateData } from "../cvat";
 import { isElectron, isTauri } from "../utils";
+import { sessionStore } from "../store";
 declare const __IPC_ENABLED__: boolean;
 
 // Communication에서 최초 이벤트 수신 시 호출되는 함수,
@@ -58,6 +59,10 @@ export class AppCommunication {
     }
 
     public send(event: string, data: any): void {
+        const {debug} = sessionStore.getStateReadonly().currentUser;
+        if (debug) {
+            console.trace(`[${event}]`, data);
+        }
         this.communication.send(event, data);
     }
 
