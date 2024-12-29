@@ -132,48 +132,49 @@ export class GamedotMaps extends MapSite {
                 }
             }
         } else {
-            if(!(x === 0 && y === 0)) {
-                const pos = [x, y];
-                switch (this.currentMap) {
-                    case 0:
-                        pos[0] = (pos[0] - 2285) / 2;
-                        pos[1] = (pos[1] + 5890) / 2;
-                        break;
-                    case 1:
-                        pos[0] = ((pos[0])*1.275) - 2247;
-                        pos[1] = ((pos[1])*1.275) - 670;
-                        break;
-                    case 2:
-                        pos[0] = ((pos[0])*1.275) - 2060;
-                        pos[1] = ((pos[1])*1.275) - 225;
-                        break;
-                    default:
-                        pos[0] = (pos[0] - 2285) / 2;
-                        pos[1] = (pos[1] + 5890) / 2;
-                }
-                let rpos=[pos[0], pos[1]]
-                rpos[0] = pos[0]+unsafeWindow.MAPS_RelativeX;
-                rpos[1] = pos[1]+unsafeWindow.MAPS_RelativeY;
-                if (this.isPinned) {
-                    let distance =  Math.pow(this.focusPos[0] - pos[0], 2) +
-                                            Math.pow(this.focusPos[1] - pos[1], 2)
-                    distance = Math.sqrt(distance)
-                    if(distance > 15) {
-                        this.focusPos[0] = pos[0]
-                        this.focusPos[1] = pos[1]
-                        this.setFocusPoint(pos[0], pos[1]);
-                    }
-                }
-                let o = this.userMarker.style['transform']
-                let t, s, l, c;
-                t = 'translate'
-                s = this.userMarker.style["transform"].indexOf(t) + t.length + 1
-                l = this.userMarker.style["transform"].indexOf(')', s)
-                c = this.userMarker.style["transform"].substring(s, l)
-
-                let setValues = [Math.round(rpos[0])+'px', Math.round(rpos[1])+'px']
-                this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
+            if(x===0 && y===0) return;
+            const pos = [x, y];
+            switch (this.currentMap) {
+                case 0:
+                    pos[0] = (pos[0] - 2285) / 2;
+                    pos[1] = (pos[1] + 5890) / 2;
+                    break;
+                case 1:
+                    pos[0] = ((pos[0])*1.275) - 2247;
+                    pos[1] = ((pos[1])*1.275) - 670;
+                    break;
+                case 2:
+                    pos[0] = ((pos[0])*1.275) - 2060;
+                    pos[1] = ((pos[1])*1.275) - 225;
+                    break;
+                default:
+                    pos[0] = (pos[0] - 2285) / 2;
+                    pos[1] = (pos[1] + 5890) / 2;
             }
+            let rpos=[pos[0], pos[1]]
+            rpos[0] = pos[0]+unsafeWindow.MAPS_RelativeX;
+            rpos[1] = pos[1]+unsafeWindow.MAPS_RelativeY;
+            if (this.isPinned) {
+                let distance =  Math.pow(this.focusPos[0] - pos[0], 2) +
+                                        Math.pow(this.focusPos[1] - pos[1], 2)
+                distance = Math.sqrt(distance)
+                if(distance > 15) {
+                    this.focusPos[0] = pos[0]
+                    this.focusPos[1] = pos[1]
+                    this.setFocusPoint(pos[0], pos[1]);
+                }
+            }
+            let o = this.userMarker.style['transform']
+            let t, s, l, c;
+            t = 'translate'
+            s = this.userMarker.style["transform"].indexOf(t) + t.length + 1
+            l = this.userMarker.style["transform"].indexOf(')', s)
+            c = this.userMarker.style["transform"].substring(s, l)
+
+            let setValues = [Math.round(rpos[0])+'px', Math.round(rpos[1])+'px']
+            this.userMarker.style['transform'] = o.substring(0, s) + setValues.join(', ') + o.substring(s + c.length);
+
+            if(dir === 0 && rot === 0) return;
             this.userMarker.style.setProperty('--dir', 0 - dir + 'deg');
             this.userMarker.style.setProperty('--rot', 0 - rot + 'deg');
         }
