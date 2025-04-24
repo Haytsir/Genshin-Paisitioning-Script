@@ -1,4 +1,4 @@
-import { CvatConfig, getCvatDefaultConfig } from "../cvat";
+import { CvatConfig, getCvatDefaultConfig } from "@src/libs/cvat";
 
 export interface ConfigData {
     app: CvatConfig;
@@ -9,6 +9,12 @@ export interface ConfigData {
             indicator_color: string;
             indicator_initial_opacity: number;
             indicator_duration: number;
+        },
+        marker_offsets: {
+            [key: number]: {
+                offset_formula_x: string;
+                offset_formula_y: string;
+            };
         };
     };
 }
@@ -23,6 +29,12 @@ export function getDefaultConfig(): ConfigData {
                 indicator_color: '#d3bc8e',
                 indicator_initial_opacity: 0.35,
                 indicator_duration: 7
+            },
+            marker_offsets: {
+                1: {
+                    offset_formula_x: '0',
+                    offset_formula_y: '0'
+                }
             }
         }
     };
