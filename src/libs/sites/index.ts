@@ -13,8 +13,8 @@ interface ErrorItem {
     details?: string;
 }
 
-export class MapSite {
-    private static _instance: MapSite | null = null;
+export class BaseSite {
+    protected static _instance: BaseSite;
     public root: HTMLDivElement;
     public dialog: Dialog;
     public actionMenu: ActionMenu;
@@ -37,13 +37,19 @@ export class MapSite {
     public configModal: ConfigModal;
     public toast: Toast;
 
-    public static getInstance(): MapSite {
-        if (!this._instance) {
-            this._instance = new MapSite();
+    static get instance(): BaseSite {
+        if(!BaseSite._instance) {
+            throw new Error('인스턴스가 초기화되지 않았습니다.');
         }
-        return this._instance;
+        return BaseSite._instance;
     }
+    
     protected constructor() {
+        if (BaseSite._instance) {
+            throw new Error('이 클래스는 싱글톤입니다.');
+        }
+        BaseSite._instance = this;
+
         this.root = document.createElement('div');
         this.root.id = 'gps-root';
         this.siteHost = location.host;

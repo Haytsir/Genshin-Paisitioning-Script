@@ -1,4 +1,4 @@
-import { MapSite } from "..";
+import { BaseSite } from "..";
 import { sessionStore } from "@src/libs/store";
 import { unsafeWindow } from "\$";
 import { CvatConfig, TrackData } from "@src/libs/cvat";
@@ -26,8 +26,7 @@ declare global {
     }
 }
 
-export class GamedotMaps extends MapSite {
-    static #instance: GamedotMaps;
+export class GamedotMaps extends BaseSite {
     public objectPanelMenu: HTMLDivElement | null = null;
     public objectTargetFilterBtn: HTMLDivElement | null = null;
     public mapInfo: Map<number, string>;
@@ -37,8 +36,7 @@ export class GamedotMaps extends MapSite {
     private tmpMousePos: [number, number] = [0, 0];
 
     static get instance(): GamedotMaps {
-        if(!GamedotMaps.#instance) GamedotMaps.#instance = new GamedotMaps();
-        return GamedotMaps.#instance;
+        return BaseSite.instance as GamedotMaps;
     }
 
     constructor() {

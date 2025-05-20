@@ -1,0 +1,40 @@
+@import './common.scss';
+
+.config-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    background-color: rgba(255, 255, 255, 0.05);
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.config-label {
+    font-size: 0.9rem;
+    color: #fff;
+    margin-right: 1rem;
+}
+
+.color-input {
+    width: 50px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background: none;
+
+    &::-webkit-color-swatch-wrapper {
+        padding: 0;
+    }
+
+    &::-webkit-color-swatch {
+        border: none;
+        border-radius: 4px;
+    }
+} 
