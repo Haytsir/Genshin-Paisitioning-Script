@@ -373,3 +373,50 @@
     width: 100%;
     // ... 기존 스타일 ...
 }
+
+.offset-list {
+    .offset-item {
+        margin-bottom: 24px;
+        
+        h3 {
+            margin: 0 0 16px 0;
+            font-size: 1rem;
+            color: var(--modal-text);
+        }
+    }
+
+    .formula-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .formula-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        label {
+            flex: 0 0 80px;
+            font-size: 0.9rem;
+            color: var(--modal-text);
+        }
+
+        .formula-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--modal-border);
+            background: var(--modal-input-bg);
+            color: var(--modal-text);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: monospace;
+            transition: border-color 0.2s;
+
+            &:focus {
+                outline: none;
+                border-color: var(--modal-primary);
+            }
+        }
+    }
+}

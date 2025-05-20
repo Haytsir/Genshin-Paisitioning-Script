@@ -2,6 +2,7 @@ import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
 import { ConfigData, getDefaultConfig } from "@src/libs/sites/config";
 import { persistentStore } from '@src/libs/store';
+import { unsafeWindow } from '$';
 
 // 설정 경로를 위한 타입 정의
 type PathsToStringProps<T> = T extends object
@@ -16,12 +17,17 @@ type ConfigPath = PathsToStringProps<ConfigData>;
 
 interface ConfigField {
     label: string;
-    type: 'checkbox' | 'number' | 'color' | 'range';
+    type: 'checkbox' | 'number' | 'color' | 'range' | 'formula';
     section: 'app' | 'indicator';
     path: ConfigPath;  // 전체 경로를 문자열로 저장
     min?: number;
     max?: number;
     step?: number;
+}
+
+interface OffsetConfig {
+    formula_x: string;
+    formula_y: string;
 }
 
 const CONFIG_FIELDS: Record<string, ConfigField> = {
@@ -144,6 +150,7 @@ export class ConfigModal extends HTMLElement {
                 <div class="gps-config-tabs">
                     <button class="tab-button active" data-tab="general">일반</button>
                     <button class="tab-button" data-tab="indicator">위치 마커</button>
+                    <button class="tab-button" data-tab="offset">Offset</button>
                 </div>
                 <div class="gps-config-body">
                     <div class="tab-content active" data-tab="general">
@@ -151,6 +158,9 @@ export class ConfigModal extends HTMLElement {
                     </div>
                     <div class="tab-content" data-tab="indicator">
                         ${this.createIndicatorConfigInputs()}
+                    </div>
+                    <div class="tab-content" data-tab="offset">
+                        ${this.createOffsetConfigInputs()}
                     </div>
                 </div>
                 <footer class="gps-config-footer">
@@ -179,6 +189,34 @@ export class ConfigModal extends HTMLElement {
             .filter(([_, field]) => field.section === 'indicator')
             .map(([key, field]) => this.createConfigInput(key, field))
             .join('');
+    }
+
+    private createOffsetConfigInputs(): string {
+        const offsets = this.tempConfig.script.marker_offsets;
+        let html = '<div class="offset-list">';
+        
+        // 현재 맵에 대한 offset 설정
+        const currentMap = Number(unsafeWindow.MAPS_Type) || 0;
+        const currentOffset = offsets[currentMap] || { formula_x: '', formula_y: '' };
+        
+        html += `
+            <div class="offset-item">
+                <h3>현재 맵 Offset 설정</h3>
+                <div class="formula-inputs">
+                    <div class="formula-group">
+                        <label>X 공식:</label>
+                        <input type="text" class="formula-input" data-map="${currentMap}" data-axis="x" value="${currentOffset.formula_x}">
+                    </div>
+                    <div class="formula-group">
+                        <label>Y 공식:</label>
+                        <input type="text" class="formula-input" data-map="${currentMap}" data-axis="y" value="${currentOffset.formula_y}">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        html += '</div>';
+        return html;
     }
 
     private createConfigInput(key: string, field: ConfigField): string {
@@ -281,6 +319,24 @@ export class ConfigModal extends HTMLElement {
             
             // 값 변경 시 업데이트
             rangeInput.addEventListener('input', updateTooltip);
+        });
+
+        // Offset 설정 변경 감지
+        this.elements.modal.querySelectorAll('.formula-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const target = e.target as HTMLInputElement;
+                const mapId = Number(target.dataset.map!);
+                const axis = target.dataset.axis!;
+                
+                if (!this.tempConfig.script.marker_offsets[mapId]) {
+                    this.tempConfig.script.marker_offsets[mapId] = {
+                        formula_x: '',
+                        formula_y: ''
+                    };
+                }
+                
+                this.tempConfig.script.marker_offsets[mapId][axis === 'x' ? 'formula_x' : 'formula_y'] = target.value;
+            });
         });
     }
 
