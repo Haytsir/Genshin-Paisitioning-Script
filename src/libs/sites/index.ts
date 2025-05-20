@@ -46,7 +46,7 @@ export class BaseSite {
     
     protected constructor() {
         if (BaseSite._instance) {
-            throw new Error('이 클래스는 싱글톤입니다.');
+            throw new Error('이미 인스턴스가 존재합니다.');
         }
         BaseSite._instance = this;
 
