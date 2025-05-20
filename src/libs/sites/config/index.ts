@@ -12,8 +12,8 @@ export interface ConfigData {
         },
         marker_offsets: {
             [key: number]: {
-                offset_formula_x: string;
-                offset_formula_y: string;
+                formula_x: string;
+                formula_y: string;
             };
         };
     };
@@ -31,10 +31,6 @@ export function getDefaultConfig(): ConfigData {
                 indicator_duration: 7
             },
             marker_offsets: {
-                1: {
-                    offset_formula_x: '0',
-                    offset_formula_y: '0'
-                }
             }
         }
     };

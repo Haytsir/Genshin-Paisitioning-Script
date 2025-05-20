@@ -1,165 +1,205 @@
-import { FormulaParser, FormulaCompiler, FormulaManager, FormulaContext } from './formula';
+import { FormulaManager } from './formula';
 
-describe('Formula Parser', () => {
-  test('기본 수식 파싱', () => {
-    const input = "(pos - 2285) / 2";
-    const result = FormulaParser.parse(input);
+describe('FormulaManager', () => {
+  let manager: FormulaManager;
 
-    // 예상되는 AST 구조
-    expect(result).toEqual({
-      type: 'operation',
-      operator: '/',
-      left: {
-        type: 'operation',
-        operator: '-',
-        left: {
-          type: 'variable',
-          path: ['pos']
-        },
-        right: {
-          type: 'value',
-          value: 2285
-        }
-      },
-      right: {
-        type: 'value',
-        value: 2
+  beforeEach(() => {
+    manager = new FormulaManager();
+  });
+
+  describe('변수 관리', () => {
+    test('변수 추가 및 동적 값 가져오기', () => {
+      let xValue = 10;
+      let yValue = 20;
+
+      manager.setVariable('x', 'X 좌표', () => xValue);
+      manager.setVariable('y', 'Y 좌표', () => yValue);
+
+      expect(manager.getVariables()).toHaveLength(2);
+      expect(manager.getVariables()[0].name).toBe('x');
+      expect(manager.getVariables()[0].description).toBe('X 좌표');
+
+      // 값이 변경되었을 때 수식 계산 결과 확인
+      expect(manager.evaluate('x + y')).toBe(30);
+      
+      xValue = 15;
+      yValue = 25;
+      expect(manager.evaluate('x + y')).toBe(40);
+    });
+
+    test('잘못된 변수명 지정', () => {
+      expect(() => {
+        manager.setVariable('123x', '잘못된 변수명', () => 10);
+      }).toThrow('Invalid variable name');
+    });
+
+    test('변수 값 업데이트', () => {
+      manager.setVariable('x', 'X 좌표', () => 10);
+      manager.setVariable('x', 'X 좌표', () => 15);
+      
+      const variables = manager.getVariables();
+      expect(variables[0].getValue()).toBe(15);
+    });
+  });
+
+  describe('수식 계산', () => {
+    let xValue: number;
+    let yValue: number;
+    let scaleValue: number;
+    let offsetValue: number;
+
+    beforeEach(() => {
+      xValue = 10;
+      yValue = 20;
+      scaleValue = 2;
+      offsetValue = 5;
+      manager.setVariable('x', 'X 좌표', () => xValue);
+      manager.setVariable('y', 'Y 좌표', () => yValue);
+      manager.setVariable('scale', '배율', () => scaleValue);
+      manager.setVariable('offset', '오프셋', () => offsetValue);
+    });
+
+    test('기본 사칙연산', () => {
+      expect(manager.evaluate('x + y')).toBe(xValue + yValue);
+      expect(manager.evaluate('x - y')).toBe(xValue - yValue);
+      expect(manager.evaluate('x * y')).toBe(xValue * yValue);
+      expect(manager.evaluate('y / x')).toBe(yValue / xValue);
+
+      // 값 변경 후 재계산
+      xValue = 15;
+      yValue = 30;
+      expect(manager.evaluate('x + y')).toBe(xValue + yValue);
+      expect(manager.evaluate('x * y')).toBe(xValue * yValue);
+    });
+
+    test('scale과 offset 사용', () => {
+      expect(manager.evaluate('x * scale + offset')).toBe(xValue * scaleValue + offsetValue);
+      expect(manager.evaluate('y * scale - offset')).toBe(yValue * scaleValue - offsetValue);
+
+      // 값 변경 후 재계산
+      xValue = 20;
+      yValue = 30;
+      scaleValue = 3;
+      offsetValue = 10;
+      expect(manager.evaluate('x * scale + offset')).toBe(xValue * scaleValue + offsetValue);
+      expect(manager.evaluate('y * scale - offset')).toBe(yValue * scaleValue - offsetValue);
+    });
+
+    test('괄호를 사용한 복잡한 수식', () => {
+      expect(manager.evaluate('(x + y) * scale')).toBe((xValue + yValue) * scaleValue);
+      expect(manager.evaluate('(x * scale) + (y / 2)')).toBe((xValue * scaleValue) + (yValue / 2));
+
+      // 값 변경 후 재계산
+      xValue = 15;
+      yValue = 25;
+      scaleValue = 3;
+      expect(manager.evaluate('(x + y) * scale')).toBe((xValue + yValue) * scaleValue);
+      expect(manager.evaluate('(x * scale) + (y / 2)')).toBe((xValue * scaleValue) + (yValue / 2));
+    });
+
+    test('존재하지 않는 변수 사용 시도', () => {
+      expect(() => {
+        manager.evaluate('x + z');
+      }).toThrow('Unknown variable: z');
+    });
+
+    test('0으로 나누기 시도', () => {
+      let zeroValue = 1;
+      manager.setVariable('zero', '0 값', () => zeroValue);
+      expect(manager.evaluate('x / zero')).toBe(xValue / zeroValue);
+
+      // 0으로 나누기 시도
+      zeroValue = 0;
+      expect(() => {
+        manager.evaluate('x / zero');
+      }).toThrow('Division by zero');
+    });
+
+    test('잘못된 수식 형식', () => {
+      expect(() => {
+        manager.evaluate('x + * y');
+      }).toThrow();
+    });
+
+    test('연산자 우선순위 확인', () => {
+      // x + y * 2: y * 2가 먼저 계산되어야 함
+      expect(manager.evaluate('x + y * 2')).toBe(xValue + yValue * 2);
+
+      // x * (y + 3): 괄호 안의 y + 3이 먼저 계산되어야 함
+      expect(manager.evaluate('x * (y + 3)')).toBe(xValue * (yValue + 3));
+
+      // (x + y) * 2: 괄호 안의 x + y가 먼저 계산되어야 함
+      expect(manager.evaluate('(x + y) * 2')).toBe((xValue + yValue) * 2);
+
+      // x + y / 3: x / y가 먼저 계산되어야 함
+      expect(manager.evaluate('x + y / 3')).toBe(xValue + yValue / 3);
+    });
+  });
+
+  describe('성능 테스트', () => {
+    test('빠른 계산 속도 확인', () => {
+      let xValue = 10;
+      let yValue = 20;
+      let scaleValue = 2;
+      let offsetValue = 5;
+      manager.setVariable('x', 'X 좌표', () => xValue);
+      manager.setVariable('y', 'Y 좌표', () => yValue);
+      manager.setVariable('scale', '배율', () => scaleValue);
+      manager.setVariable('offset', '오프셋', () => offsetValue);
+      
+      const startTime = performance.now();
+      for (let i = 0; i < 1000; i++) {
+        xValue = i;
+        yValue = (i % 50) + 10;
+        manager.evaluate('(x + y) * scale + offset');
       }
+      const endTime = performance.now();
+      
+      // 1000회 계산이 100ms 이내에 완료되어야 함
+      console.log(`계산 시간: ${endTime - startTime}ms`);
+      expect(endTime - startTime).toBeLessThan(100);
     });
   });
+  
+  describe('성능 비교 테스트', () => {
+    test('복잡한 수식(이중 괄호 포함) 하드코딩 연산과 파서 연산 속도 비교', () => {
+      let xValue = 10;
+      let yValue = 20;
+      let scaleValue = 2;
+      let offsetValue = 5;
+      manager.setVariable('x', 'X 좌표', () => xValue);
+      manager.setVariable('y', 'Y 좌표', () => yValue);
+      manager.setVariable('scale', '배율', () => scaleValue);
+      manager.setVariable('offset', '오프셋', () => offsetValue);
 
-  test('복잡한 수식 파싱', () => {
-    const input = "pos * 1.275 - 2247";
-    const result = FormulaParser.parse(input);
+      const ITER = 100_000;
+      let result = 0;
+      const formula = '((x * (y + 3)) / (y - 2) + (x - y) * scale) * 1.5 + offset';
 
-    expect(result).toEqual({
-      type: 'operation',
-      operator: '-',
-      left: {
-        type: 'operation',
-        operator: '*',
-        left: {
-          type: 'variable',
-          path: ['pos']
-        },
-        right: {
-          type: 'value',
-          value: 1.275
-        }
-      },
-      right: {
-        type: 'value',
-        value: 2247
+      // 하드코드 연산
+      const startHard = performance.now();
+      for (let i = 0; i < ITER; i++) {
+        xValue = i + 1;
+        yValue = (i % 50) + 10;
+        result += (((xValue * (yValue + 3)) / (yValue - 2) + (xValue - yValue) * scaleValue) * 1.5 + offsetValue);
       }
-    });
-  });
+      const endHard = performance.now();
 
-  test('잘못된 수식 처리', () => {
-    expect(() => FormulaParser.parse("(pos - 2285")).toThrow('괄호가 닫히지 않았습니다');
-    expect(() => FormulaParser.parse("pos *")).toThrow();
-  });
-});
-
-describe('Formula Compiler', () => {
-  test('기본 수식 컴파일 및 실행', () => {
-    const input = "(pos - 2285) / 2";
-    const ast = FormulaParser.parse(input);
-    const compiled = FormulaCompiler.compile(ast);
-
-    const context: FormulaContext = { pos: 5000 };
-    expect(compiled(context)).toBe((5000 - 2285) / 2);
-  });
-
-  test('컨텍스트 변수 사용', () => {
-    const input = "pos * scale.x + offset.x";
-    const ast = FormulaParser.parse(input);
-    const compiled = FormulaCompiler.compile(ast);
-
-    const context: FormulaContext = {
-      pos: 100,
-      scale: { x: 1.5 },
-      offset: { x: 100 }
-    };
-    expect(compiled(context)).toBe(100 * 1.5 + 100);
-  });
-
-  test('잘못된 컨텍스트 처리', () => {
-    const input = "pos * scale.x";
-    const ast = FormulaParser.parse(input);
-    const compiled = FormulaCompiler.compile(ast);
-
-    const context: FormulaContext = { pos: 100 };
-    expect(compiled(context)).toBe(0);
-  });
-});
-
-describe('Formula Manager', () => {
-  test('위치 계산', () => {
-    const manager = new FormulaManager({
-      0: {
-        x: "(pos - 2285) / 2",
-        y: "(pos + 5890) / 2"
+      // 파서 연산
+      xValue = 10; yValue = 20; result = 0;
+      const startParser = performance.now();
+      for (let i = 0; i < ITER; i++) {
+        xValue = i + 1;
+        yValue = (i % 50) + 10;
+        result += manager.evaluate(formula);
       }
+      const endParser = performance.now();
+
+      console.log(`하드코드 연산: ${(endHard - startHard).toFixed(2)}ms`);
+      console.log(`파서 연산: ${(endParser - startParser).toFixed(2)}ms`);
+
+      // 파서가 하드코드보다 100배 이상 느리면 실패
+      expect(endParser - startParser).toBeLessThan((endHard - startHard) * 100);
     });
-
-    const result = manager.calculatePosition([5000, 5000], 0);
-    expect(result).toEqual([
-      (5000 - 2285) / 2,
-      (5000 + 5890) / 2
-    ]);
   });
-
-  test('추가 컨텍스트 사용', () => {
-    const manager = new FormulaManager({
-      0: {
-        x: "pos * scale.x + offset.x",
-        y: "pos * scale.y + offset.y"
-      }
-    });
-
-    const result = manager.calculatePosition([100, 100], 0, {
-      scale: { x: 1.5, y: 2.0 },
-      offset: { x: 100, y: 200 }
-    });
-
-    expect(result).toEqual([
-      100 * 1.5 + 100,
-      100 * 2.0 + 200
-    ]);
-  });
-
-  test('수식 유효성 검사', () => {
-    const manager = new FormulaManager();
-    
-    expect(manager.validateFormula("(pos - 2285) / 2")).toBe(true);
-    expect(manager.validateFormula("(pos - 2285) - 2 + 50 + 100")).toBe(true);
-    expect(manager.validateFormula("pos * 1.275 - 2247")).toBe(true);
-    expect(manager.validateFormula("(pos - 2285")).toBe(false);
-    expect(manager.validateFormula("pos *")).toBe(false);
-  });
-});
-
-// 디버깅을 위한 헬퍼 함수
-function debugFormula(input: string) {
-  console.log('Input:', input);
-  
-  const ast = FormulaParser.parse(input);
-  console.log('AST:', JSON.stringify(ast, null, 2));
-  
-  const compiled = FormulaCompiler.compile(ast);
-  console.log('Compiled:', compiled.toString());
-  
-  return { ast, compiled };
-}
-
-// 디버깅 예시
-test('수식 디버깅', () => {
-  const { ast, compiled } = debugFormula("(pos - 2285) / 2");
-  
-  // AST 구조 확인
-  expect(ast).toMatchSnapshot();
-  
-  // 컴파일된 함수 실행
-  const result = compiled({ pos: 5000 });
-  expect(result).toBe((5000 - 2285) / 2);
 });
