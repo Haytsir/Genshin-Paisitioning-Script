@@ -15,6 +15,8 @@ interface ErrorItem {
 
 export class BaseSite {
     protected static _instance: BaseSite;
+    static siteUri: string;
+    static siteId: string;
     public root: HTMLDivElement;
     public dialog: Dialog;
     public actionMenu: ActionMenu;
@@ -91,7 +93,7 @@ export class BaseSite {
             this.userMarker.classList.add('active')
             this.actionMenu.actionPin.classList.add('active');
         }
-        this.currentMap = 0;
+        this.currentMap = 0; // CVAT 라이브러리에서 인식하는 맵 번호
 
         this.mapElement = this.getDOMElement<HTMLDivElement>('#objectViewer');
         this.objectPanelMenu = this.getDOMElement<HTMLDivElement>('#mapsMenu');
@@ -104,7 +106,7 @@ export class BaseSite {
                 console.debug('설정 변경됨', newState.config);
             }
             if(newState.config.app) {
-                this.communication.sendConfig(newState.config.app);
+                this.communication.sendConfig(newState.config.app as CvatConfig);
             }
         });
     }

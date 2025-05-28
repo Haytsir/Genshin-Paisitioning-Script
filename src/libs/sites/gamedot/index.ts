@@ -1,12 +1,13 @@
 import { BaseSite } from "..";
-import { sessionStore } from "@src/libs/store";
+import { sessionStore, persistentStore } from "@src/libs/store";
 import { unsafeWindow } from "\$";
 import { CvatConfig, TrackData } from "@src/libs/cvat";
 import { overrideFuntions } from "./overrides";
 import './style.scss';
+import { ConfigData } from "../config";
+import { FormulaManager } from "../config/formula";
 
-
-
+// 사이트에서 지정한 변수들의 타입 추가
 declare global {
     interface Window {
         objectPanelWindow: HTMLDivElement | null;
@@ -21,19 +22,68 @@ declare global {
         MAPS_RelativeY: number;
         MAPS_ViewMobile: boolean;
         MAPS_Type: string;
+        MAPS_Version: {
+            [key: string]: {
+                id: number;
+                title: string;
+                relativeX: number;
+                relativeY: number;
+                size: number;
+                update: string;
+                maps: {
+                    [mapName: string]: string;
+                }
+            };
+        };
         drawMapsScale: (...args: any) => void;
         changeMapsType: (...args: any) => void;
     }
 }
 
 export class GamedotMaps extends BaseSite {
+    static siteUri = 'genshin.gamedot.org';
+    static siteId = 'gamedot';
+
+    static defaultMarkerOffsets: ConfigData["script"]["marker_offsets"] = {
+        2: {
+            title: '티바트 대륙',
+            lib_map_id: 0,
+            formula_x: '((x-2285)/2)',
+            formula_y: '((y+5890)/2)'
+        },
+        7: {
+            title: '연하궁',
+            lib_map_id: 1,
+            formula_x: '(((x)*1.275) - 2247)',
+            formula_y: '(((y)*1.275) - 670)'
+        },
+        8: {
+            title: '층암거연',
+            lib_map_id: 2,
+            formula_x: '(((x)*1.275) - 2060)',
+            formula_y: '(((y)*1.275) - 225)'
+        },
+        12: {
+            title: '지난 날의 바다',
+            lib_map_id: 3,
+            formula_x: '(((x)*1.275))',
+            formula_y: '(((y)*1.275))'
+        },
+        13: {
+            title: '태고의 신성한 산',
+            lib_map_id: 4,
+            formula_x: '(((x)*1.275))',
+            formula_y: '(((y)*1.275))'
+        }
+    };
     public objectPanelMenu: HTMLDivElement | null = null;
     public objectTargetFilterBtn: HTMLDivElement | null = null;
-    public mapInfo: Map<number, string>;
+    public libIdToKeyMap: Map<number, string>;
     public mcEnsure: number;
     public focusPos: [number, number] = [0, 0];
     private tmpDragging = -1;
     private tmpMousePos: [number, number] = [0, 0];
+    private formulaManager: FormulaManager; // 현재 위치 마커 오프셋 계산을 위한 수식 매니저
 
     static get instance(): GamedotMaps {
         return BaseSite.instance as GamedotMaps;
@@ -60,8 +110,22 @@ export class GamedotMaps extends BaseSite {
 
         this.mapElement = unsafeWindow.objectViewer;
         
-        this.mapInfo = new Map<number, string>([[0, 'teyvat'], [1, 'enkanomiya'], [2, 'underground-mines']]);
+        this.libIdToKeyMap = new Map<number, string>(); // CVAT 의 m(맵 id)를 통해 게임닷의 맵 이름을 얻어오기 위함, (id, 맵 이름)
+        const mapEntries = Object.entries(unsafeWindow.MAPS_Version);
+        mapEntries.sort((a, b) => a[1].id - b[1].id);
+        mapEntries.forEach(([key, mapInfo], idx) => {
+            this.libIdToKeyMap.set(idx, key);
+            if(!GamedotMaps.defaultMarkerOffsets[mapInfo.id]) {
+                GamedotMaps.defaultMarkerOffsets[mapInfo.id] = { // 스크립트가 업데이트 되지 않은 상황에서 맵 추가에 대응하기 위해 기본값에 존재하지 않는 맵 정보도 갱신
+                    title: mapInfo.title,
+                    lib_map_id: idx,
+                    formula_x: '(((x)*1.275))',
+                    formula_y: '(((y)*1.275))'
+                }
+            }
+        });
         this.mcEnsure = 0;
+        this.formulaManager = new FormulaManager();
 
         if(unsafeWindow.objectViewer instanceof HTMLDivElement) {
             unsafeWindow.objectViewer.addEventListener('mousedown', (e) => this.onMouseTouchDown(e));
@@ -73,6 +137,25 @@ export class GamedotMaps extends BaseSite {
         }
 
         overrideFuntions(this);
+
+        sessionStore.upsert({
+            versionInfo: {
+                script: {
+                    site: GamedotMaps.siteUri
+                }
+            }
+        });
+
+        persistentStore.upsert({
+            config: {
+                script: {
+                    marker_offsets: {
+                        ...GamedotMaps.defaultMarkerOffsets,
+                        ...persistentStore.getStateReadonly().config.script?.marker_offsets,
+                    }
+                }
+            }
+        });
     }
 
     setFocusScroll(x: number, y: number) {
@@ -121,34 +204,37 @@ export class GamedotMaps extends BaseSite {
             } else {
                 this.mcEnsure = 0
                 this.currentMap = m
-                if(this.mapInfo.has(this.currentMap)) {
-                    const mapName = this.mapInfo.get(this.currentMap);
+                if(this.libIdToKeyMap.has(this.currentMap)) {
+                    const mapName = this.libIdToKeyMap.get(this.currentMap);
                     if(mapName)
-                        this.onPlayerMovedMap(mapName);
+                        this.onPlayerMovedMap(mapName); // 플레이어가 (인게임에서) 실제로 다른 맵으로 이동했다고 판단될 때 호출
                 } else {
-                    this.handleError(new Error('알 수 없는 지도입니다.'));
+                    this.handleError(new Error(`알 수 없는 지도입니다: ${m}`));
                 }
             }
         } else {
             if(x===0 && y===0) return;
             const pos = [x, y];
-            switch (this.currentMap) {
-                case 0:
-                    pos[0] = (pos[0] - 2285) / 2;
-                    pos[1] = (pos[1] + 5890) / 2;
-                    break;
-                case 1:
-                    pos[0] = ((pos[0])*1.275) - 2247;
-                    pos[1] = ((pos[1])*1.275) - 670;
-                    break;
-                case 2:
-                    pos[0] = ((pos[0])*1.275) - 2060;
-                    pos[1] = ((pos[1])*1.275) - 225;
-                    break;
-                default:
-                    pos[0] = (pos[0] - 2285) / 2;
-                    pos[1] = (pos[1] + 5890) / 2;
+            
+            this.formulaManager.setVariable('x', '인게임 X 좌표', () => pos[0]);
+            this.formulaManager.setVariable('y', '인게임 Y 좌표', () => pos[1]);
+            this.formulaManager.setVariable('scale', '지도 크기', () => unsafeWindow.MAPS_Scale);
+            this.formulaManager.setVariable('relativeX', '맵스 상대 X 오프셋', () => unsafeWindow.MAPS_RelativeX);
+            this.formulaManager.setVariable('relativeY', '맵스 상대 Y 오프셋', () => unsafeWindow.MAPS_RelativeY);
+            
+            const config = persistentStore.getStateReadonly().config as ConfigData;
+            
+            // this.currentMap은 CVAT 라이브러리에서 인식하는 맵 번호이므로, 이를 게임닷 맵스 번호로 변환
+            const mapId = this.libIdToKeyMap.get(this.currentMap) || 'teyvat';
+            const formulaX = config.script.marker_offsets[unsafeWindow.MAPS_Version[mapId]?.id]?.formula_x || 'x';
+            const formulaY = config.script.marker_offsets[unsafeWindow.MAPS_Version[mapId]?.id]?.formula_y || 'y';
+            pos[0] = this.formulaManager.evaluate(formulaX);
+            pos[1] = this.formulaManager.evaluate(formulaY);
+            if(debug) {
+                console.debug("gamedot:onTrackEvent.GetOffsetFormula", formulaX, formulaY);
+                console.debug("gamedot:onTrackEvent.EvaluateFormula", pos[0], pos[1]);
             }
+            
             let rpos=[pos[0], pos[1]]
             rpos[0] = pos[0]+unsafeWindow.MAPS_RelativeX;
             rpos[1] = pos[1]+unsafeWindow.MAPS_RelativeY;
@@ -178,6 +264,7 @@ export class GamedotMaps extends BaseSite {
         }
     }
 
+    // 플레이어가 (인게임에서) 다른 맵으로 이동했을 때 호출되는 함수
     onPlayerMovedMap(mapName: string) {
         const objectTab = document.getElementById("mapsAreaFilter");
         if(this.objectTargetFilterBtn instanceof HTMLDivElement) 
@@ -189,43 +276,63 @@ export class GamedotMaps extends BaseSite {
 
         if(this.isActive && this.userMarker) {
             if(unsafeWindow.MAPS_Type !== mapName) {
-                this.userMarker.classList.add('hide')
+                this.userMarker.hide();
                 this.setPinned(false);
-                this.dialog.alert('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
+                this.handleError(new Error(`플레이어의 현재 위치와 활성화된 지도가 다릅니다: 현재 위치 ${mapName}, 활성화된 지도 ${unsafeWindow.MAPS_Type}`));
             } else {
-                this.userMarker.classList.remove('hide')
-                this.dialog.close(null);
+                this.userMarker.show();
             }
         }
     }
 
-    onChangeMap(strCode: string, _mapCode = "") {
+    // 사용자가 게임닷 맵스 지도 타입을 변경했을 때 호출되는 함수
+    onChangeMap({ strCode, strTarget, focus = false }: { strCode: string, strTarget: string, focus: boolean }, _mapCode = "") {
+        console.debug("gamedot:onChangeMap", strCode, strTarget, focus, _mapCode);
+        this.setPinned(false);
         if(this.isActive && this.userMarker) {
-            if(unsafeWindow.MAPS_Type !== strCode) {
-                this.userMarker.classList.add('hide')
-                this.setPinned(false);
-                this.dialog.alert('GPS', '플레이어의 현재 위치와 활성화된 지도가 다릅니다.', 0, true);
+            if(this.libIdToKeyMap.get(this.currentMap) !== strCode) {
+                this.userMarker.hide();
+                this.handleError(new Error(`플레이어의 현재 위치와 활성화된 지도가 다릅니다: 현재 위치 ${strCode}, 활성화된 지도 ${unsafeWindow.MAPS_Type}`));
             } else {
-                this.userMarker.classList.remove('hide')
-                this.dialog.close(null);
+                this.userMarker.show();
             }
+            // 현재 맵이 어디인지 나타낼 인디케이터를 위해 클래스 지정
             if(this.objectTargetFilterBtn instanceof HTMLDivElement)
                 this.objectTargetFilterBtn.classList.remove('current-map')
             const objectTab = document.getElementById("mapsAreaFilter");
             if(objectTab instanceof HTMLDivElement)
-                this.objectTargetFilterBtn = objectTab.querySelector(`div[data-value='${this.mapInfo.get(this.currentMap)}']`)
+                this.objectTargetFilterBtn = objectTab.querySelector(`div[data-value='${this.libIdToKeyMap.get(this.currentMap)}']`)
             if(this.objectTargetFilterBtn)
                 this.objectTargetFilterBtn.classList.add('current-map')
         }
     }
 
     setPinned(p: boolean): void {
-        super.setPinned(p);
-        if(this.isPinned) {
-            if(this.mapInfo.get(this.currentMap) !== unsafeWindow.MAPS_Type) {
-                unsafeWindow.changeMapsType(this.mapInfo.get(this.currentMap))
+        if(p) {
+            if(this.libIdToKeyMap.get(this.currentMap) !== unsafeWindow.MAPS_Type) {
+                unsafeWindow.changeMapsType({strCode: this.libIdToKeyMap.get(this.currentMap), focus: false}, this.libIdToKeyMap.get(this.currentMap));
+                const objectTab = document.getElementById("mapsAreaFilter");
+
+                // 따라가기를 눌러서 맵이 바뀌면, 필터 강조 표시도 바꾸기 위함
+                if(objectTab instanceof HTMLDivElement) {
+                    const currentFocus = objectTab.querySelector('div.focus');
+                    
+                    if(currentFocus instanceof HTMLDivElement)
+                        currentFocus.classList.remove('focus');
+
+                    const targetFilterBtn = objectTab.querySelector(`div[data-value='${this.libIdToKeyMap.get(this.currentMap)}']`) || objectTab.querySelector(`div[data-value='unset']`);
+
+                    if(targetFilterBtn)
+                        targetFilterBtn.classList.add('focus')
+                }
+
+                // 타임아웃이 없으면, 현재 맵이 아닌 맵에서 따라가기 할 경우 포커스가 이상한 곳으로 날아가는 경우가 있음
+                setTimeout(() => super.setPinned(p), 500);
+                return;
             }
         }
+        // 현재 인게임 맵과 게임닷 맵이 서로 같다면 따라가기 토글 바로 적용
+        super.setPinned(p);
     }
 
     onMouseTouchDown(e: MouseEvent | TouchEvent) {

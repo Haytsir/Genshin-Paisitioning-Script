@@ -12,6 +12,8 @@ export interface ConfigData {
         },
         marker_offsets: {
             [key: number]: {
+                title: string;
+                lib_map_id: number;
                 formula_x: string;
                 formula_y: string;
             };

@@ -2,7 +2,7 @@ import { customElement } from '@src/libs/utils';
 import styles from './styles.scss?inline';
 import { ConfigData, getDefaultConfig } from "@src/libs/sites/config";
 import './inputs';
-import { persistentStore } from '@src/libs/store';
+import { persistentStore, sessionStore } from '@src/libs/store';
 import { createAppConfigInputs, APP_CONFIG_FIELDS } from './sections/app';
 import { createIndicatorConfigInputs, INDICATOR_CONFIG_FIELDS } from './sections/indicator';
 import { createOffsetConfigInputs } from './sections/offset';
@@ -125,8 +125,10 @@ export class ConfigModal extends HTMLElement {
                 
                 if (!this.tempConfig.script.marker_offsets[mapId]) {
                     this.tempConfig.script.marker_offsets[mapId] = {
-                        formula_x: '',
-                        formula_y: ''
+                        title: '알 수 없는 맵',
+                        lib_map_id: mapId,
+                        formula_x: 'x',
+                        formula_y: 'y'
                     };
                 }
                 
@@ -136,6 +138,12 @@ export class ConfigModal extends HTMLElement {
     }
 
     private saveConfig(): void {
+        // 디버그 문자 출력
+        const debug = sessionStore.getState().currentUser.debug;
+        if (debug) {
+            console.debug('GPS: 설정 저장', this.tempConfig);
+        }
+        
         persistentStore.setState({ config: { ...this.tempConfig } });
         this.hideModal();
     }

@@ -20,14 +20,15 @@ export function overrideFuntions(site: GamedotMaps) {
     };
 
     const Hooked_changeMapsType = unsafeWindow.changeMapsType;
-    unsafeWindow.changeMapsType = function(args) {
+    unsafeWindow.changeMapsType = function(...args) {
         let ret;
         try {
-            ret = Hooked_changeMapsType.apply(this, [args]);
-            site.onChangeMap.apply(site, [args]);
+            ret = Hooked_changeMapsType.apply(this, args);
         } catch (err) {
             console.error(err);
         }
+
+        site.onChangeMap.apply(site, [args[0], args[1]]);
 
         return ret;
     };

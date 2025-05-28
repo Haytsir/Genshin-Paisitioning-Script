@@ -44,12 +44,12 @@ export class UserMarker extends HTMLElement {
         
         this.unsubscribeSession = sessionStore.subscribe((newState) => {
             if (newState.currentUser.isActive) {
-                this.style.visibility = 'visible';
+                this.show();
                 if (unsafeWindow.objectViewer) {
                     unsafeWindow.objectViewer.addEventListener('mousemove', this.mouseMoveEvent.bind(this));
                 }
             } else {
-                this.style.visibility = 'hidden';
+                this.hide();
                 if (unsafeWindow.objectViewer) {
                     unsafeWindow.objectViewer.removeEventListener('mousemove', this.mouseMoveEvent.bind(this));
                 }
@@ -64,6 +64,14 @@ export class UserMarker extends HTMLElement {
                 indicator.style.setProperty('--animation-duration', newState.config.script.marker_indicator.indicator_duration.toString()+'s');
             }
         });
+    }
+
+    public hide() {
+        this.style.visibility = 'hidden';
+    }
+
+    public show() {
+        this.style.visibility = 'visible';
     }
 
     private mouseMoveEvent(event: MouseEvent): void {

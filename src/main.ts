@@ -3,7 +3,7 @@ import { BaseSite } from './libs/sites'
 
 // 사이트별 클래스 매핑
 const SITE_CLASSES: Record<string, new () => BaseSite> = {
-    'genshin.gamedot.org': GamedotMaps,
+    [GamedotMaps.siteUri]: GamedotMaps,
 };
 
 (() => {

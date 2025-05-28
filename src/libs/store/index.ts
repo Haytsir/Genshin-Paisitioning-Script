@@ -19,7 +19,7 @@ export class Store<T extends object> {
     constructor(initialState: T, options?: { persist?: boolean, storageKey?: string }) {
         this.storageKey = options?.persist ? (options.storageKey || 'gps_persistent_state') : undefined;
         
-        if (this.storageKey) {
+        if (this.storageKey && this.isLocalStorageAvailable()) {
             try {
                 const savedState = localStorage.getItem(this.storageKey);
                 if (savedState) {
@@ -72,11 +72,49 @@ export class Store<T extends object> {
     setState(newState: Partial<T>) {
         const oldState = structuredClone(this.state);
         this.state = deepMerge(this.state, newState);
-        if (this.storageKey) {
-            localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+        if (this.storageKey && this.isLocalStorageAvailable()) {
+            try {
+                localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+            } catch (error) {
+                console.warn('GPS: localStorage에 상태를 저장할 수 없습니다.', error);
+            }
         }
         
         this.notify(this.state, oldState);
+    }
+
+    /**
+     * localStorage가 사용 가능한지 확인합니다.
+     * 테스트 환경이나 SSR에서 안전하게 동작하도록 합니다.
+     */
+    private isLocalStorageAvailable(): boolean {
+        try {
+            const test = '__localStorage_test__';
+            localStorage.setItem(test, test);
+            localStorage.removeItem(test);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * 변경할 값을 넘기면 자동으로 병합합니다.
+     * 함수형(updater)과 객체형(partial) 모두 지원.
+     * deepMerge를 사용해 중첩된 객체를 안전하게 병합합니다.
+     * 
+     * 예시:
+     * store.upsert({ config: { script: { marker_offsets: newOffsets } } });
+     * store.upsert(state => ({ config: { ...state.config, script: { ...state.config.script, marker_offsets: newOffsets } } }));
+     */
+    upsert(partialOrUpdater: Partial<T> | ((currentState: T) => Partial<T>)) {
+        const currentState = this.getState();
+        const partial = typeof partialOrUpdater === 'function'
+            ? partialOrUpdater(currentState)
+            : partialOrUpdater;
+        
+        // deepMerge를 사용해 안전하게 병합
+        this.setState(partial);
     }
 
     /**
@@ -129,7 +167,13 @@ export class Store<T extends object> {
 
 // 영구 저장이 필요한 상태 타입
 export interface PersistentState {
-    config: Partial<ConfigData>;
+    config: {
+        app?: Partial<ConfigData['app']>;
+        script?: {
+            marker_indicator?: Partial<ConfigData['script']['marker_indicator']>;
+            marker_offsets?: ConfigData['script']['marker_offsets'];
+        };
+    };
 }
 
 // 세션 동안만 유지되는 상태 타입
@@ -153,6 +197,7 @@ interface SessionState {
             version?: string;
         },
         script?: {
+            site: string;
             version?: string;
         }
     };
@@ -180,7 +225,8 @@ export const sessionStore = new Store<SessionState>({
     },
     versionInfo: {
         script: {
-            version: SCRIPT_VERSION
+            site: '',
+            version: (typeof SCRIPT_VERSION !== 'undefined' ? SCRIPT_VERSION : '')
         }
     }
 }); 
