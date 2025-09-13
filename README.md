@@ -31,10 +31,10 @@
    - 이걸 활성화하지 않으면 모든 userscript가 동작하지 않음 [세부 가이드](https://developer.chrome.com/docs/extensions/reference/api/userScripts?hl=ko#developer_mode_for_extension_users), [적용 근거](https://www.tampermonkey.net/faq.php#Q209)
 3. **TemperMonkey 대시보드** 클릭
 
-   ![](docs\images\01.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/01.png)
 4. **도구 탭** 클릭
 
-   ![](docs\images\02.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/02.png)
 5. 다음 링크 복사:
 
    ```
@@ -42,20 +42,20 @@
    ```
 6. 복사한 스크립트를 붙여넣고 **[설치]** 클릭
 
-   ![](docs\images\03.png)
-   ![](docs\images\04.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/03.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/04.png)
 
 ### 🗑️ 삭제 방법
 
 1. TemperMonkey 또는 GreaseMonkey [대시보드] 클릭
-   ![](docs\images\01.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/01.png)
 
 2. 원신-파이지셔닝 스크립트 항목의 쓰레기통 아이콘 클릭
-   ![](docs\images\05.png)
-   ![](docs\images\06.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/05.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/06.png)
 
 3. [삭제] 클릭
-   ![](docs\images\07.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/07.png)
 
 
 ## 사용 방법
@@ -63,12 +63,12 @@
 1. **게임 내 설정 변경**
 
    - 게임 내 [설정] - [기타] - [미니맵 고정: 방향 고정]으로 설정
-   ![](docs\images\08.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/08.png)
 
 2. **게임닷 맵스 열기**
 
    - [게임닷 맵스](https://genshin.gamedot.org/?mid=genshinmaps) 열면 실시간 연결 버튼이 생김
-   ![](docs\images\09.png)
+   ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/09.png)
 
 3. **실시간 연결**
 
