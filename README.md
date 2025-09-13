@@ -48,13 +48,16 @@
 ### 🗑️ 삭제 방법
 
 1. TemperMonkey 또는 GreaseMonkey [대시보드] 클릭
+   
    ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/01.png)
 
-2. 원신-파이지셔닝 스크립트 항목의 쓰레기통 아이콘 클릭
+3. 원신-파이지셔닝 스크립트 항목의 쓰레기통 아이콘 클릭
+   
    ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/05.png)
    ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/06.png)
 
-3. [삭제] 클릭
+4. [삭제] 클릭
+   
    ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/07.png)
 
 
@@ -68,6 +71,7 @@
 2. **게임닷 맵스 열기**
 
    - [게임닷 맵스](https://genshin.gamedot.org/?mid=genshinmaps) 열면 실시간 연결 버튼이 생김
+     
    ![](https://raw.githubusercontent.com/Haytsir/Genshin-Paisitioning-Script/refs/heads/master/docs/images/09.png)
 
 3. **실시간 연결**
