@@ -26,7 +26,7 @@
 ### 🚀 설치 방법
 
 1. **TemperMonkey 또는 GreaseMonkey를 설치** (Beta 버전 유무 상관없으나, 잘 아는게 아니라면 Stable 추천)
-2. **확장 프로그램 관리 페이지**(chrome://extensions/) 에서 개발자 모드 활성화
+2. **확장 프로그램 관리 페이지**(chrome://extensions/) 에서 개발자 모드 활성화 체크 후,Tampermonkey 항목의 [세부정보] 에서 [사용자 스크립트 허용] 체크
 
    - 이걸 활성화하지 않으면 모든 userscript가 동작하지 않음 [세부 가이드](https://developer.chrome.com/docs/extensions/reference/api/userScripts?hl=ko#developer_mode_for_extension_users), [적용 근거](https://www.tampermonkey.net/faq.php#Q209)
 3. **TemperMonkey 대시보드** 클릭
