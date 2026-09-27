@@ -1,1 +1,0 @@
-# Genshin-Paisitioning-Script
